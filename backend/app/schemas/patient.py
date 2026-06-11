@@ -16,6 +16,9 @@ class PatientCreate(BaseModel):
     phone: str | None = None
     email: str | None = None
     address: str | None = None
+    workplace: str | None = None
+    dispensary_here: str | None = None
+    dispensary_other: str | None = None
     notes: str | None = None
     branch_id: UUID | None = None
     mrn: str | None = None  # auto-generated if omitted
@@ -30,6 +33,9 @@ class PatientUpdate(BaseModel):
     phone: str | None = None
     email: str | None = None
     address: str | None = None
+    workplace: str | None = None
+    dispensary_here: str | None = None
+    dispensary_other: str | None = None
     notes: str | None = None
 
 
@@ -47,5 +53,8 @@ class PatientOut(BaseModel):
     phone: str | None
     email: str | None
     address: str | None
+    workplace: str | None
+    dispensary_here: str | None
+    dispensary_other: str | None
     notes: str | None
     branch_id: UUID | None

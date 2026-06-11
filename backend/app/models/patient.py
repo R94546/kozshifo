@@ -24,6 +24,10 @@ class Patient(UUIDPKMixin, TimestampMixin, Base):
     phone: Mapped[str | None] = mapped_column(String(32), index=True, nullable=True)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     address: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # Form 025-8 cover (DOMAIN.md §2.1): place of work/study + dispensary follow-up.
+    workplace: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    dispensary_here: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    dispensary_other: Mapped[str | None] = mapped_column(String(255), nullable=True)
     notes: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     branch_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("branches.id", ondelete="SET NULL"), nullable=True
