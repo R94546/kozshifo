@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart' hide Page;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/network/page.dart';
 import '../../../core/widgets/async_value_widget.dart';
@@ -121,7 +122,12 @@ class _PatientList extends StatelessWidget {
                 leading: CircleAvatar(child: Text(p.initials)),
                 title: Text(p.fullName),
                 subtitle: Text([p.mrn, if (p.phone != null) p.phone!].join('  ·  ')),
-                trailing: const Icon(Icons.chevron_right),
+                trailing: TextButton.icon(
+                  onPressed: () => context.go('/patients/${p.id}/card'),
+                  icon: const Icon(Icons.medical_information_outlined),
+                  label: const Text('Карта'),
+                ),
+                onTap: () => context.go('/patients/${p.id}/card'),
               );
             },
           ),

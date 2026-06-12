@@ -20,6 +20,9 @@ abstract class Patient with _$Patient {
     String? phone,
     String? email,
     String? address,
+    String? workplace,
+    String? dispensaryHere,
+    String? dispensaryOther,
     String? notes,
     String? branchId,
   }) = _Patient;

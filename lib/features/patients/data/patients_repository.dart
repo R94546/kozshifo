@@ -27,6 +27,15 @@ class PatientsRepository {
     }
   }
 
+  Future<Patient> getById(String id) async {
+    try {
+      final resp = await _dio.get('/patients/$id');
+      return Patient.fromJson(resp.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.from(e);
+    }
+  }
+
   Future<Patient> create({
     required String firstName,
     required String lastName,
@@ -54,3 +63,6 @@ final patientsListProvider = FutureProvider.autoDispose<Page<Patient>>((ref) {
   final q = ref.watch(patientSearchProvider);
   return ref.watch(patientsRepositoryProvider).list(q: q);
 });
+
+final patientByIdProvider = FutureProvider.autoDispose.family<Patient, String>(
+    (ref, id) => ref.watch(patientsRepositoryProvider).getById(id));

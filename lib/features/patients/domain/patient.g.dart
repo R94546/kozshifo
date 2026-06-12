@@ -18,6 +18,9 @@ _Patient _$PatientFromJson(Map<String, dynamic> json) => _Patient(
   phone: json['phone'] as String?,
   email: json['email'] as String?,
   address: json['address'] as String?,
+  workplace: json['workplace'] as String?,
+  dispensaryHere: json['dispensary_here'] as String?,
+  dispensaryOther: json['dispensary_other'] as String?,
   notes: json['notes'] as String?,
   branchId: json['branch_id'] as String?,
 );
@@ -34,6 +37,9 @@ Map<String, dynamic> _$PatientToJson(_Patient instance) => <String, dynamic>{
   'phone': instance.phone,
   'email': instance.email,
   'address': instance.address,
+  'workplace': instance.workplace,
+  'dispensary_here': instance.dispensaryHere,
+  'dispensary_other': instance.dispensaryOther,
   'notes': instance.notes,
   'branch_id': instance.branchId,
 };
