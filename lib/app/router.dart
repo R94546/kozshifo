@@ -9,6 +9,7 @@ import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/devices/presentation/devices_screen.dart';
 import '../features/doctor/presentation/patient_card_screen.dart';
 import '../features/patients/presentation/patients_screen.dart';
+import '../features/queue/presentation/queue_screen.dart';
 import '../features/reception/presentation/reception_screen.dart';
 import '../features/splash/splash_screen.dart';
 
@@ -27,6 +28,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: '/dashboard', builder: (_, _) => const DashboardScreen()),
           GoRoute(path: '/reception', builder: (_, _) => const ReceptionScreen()),
+          GoRoute(path: '/queue', builder: (_, _) => const QueueScreen()),
           GoRoute(path: '/patients', builder: (_, _) => const PatientsScreen()),
           GoRoute(
             path: '/patients/:id/card',

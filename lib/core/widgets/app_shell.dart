@@ -20,6 +20,8 @@ const _allDestinations = <_Destination>[
   _Destination(Icons.dashboard_outlined, Icons.dashboard, 'Дашборд', '/dashboard'),
   _Destination(Icons.point_of_sale_outlined, Icons.point_of_sale, 'Ресепшен',
       '/reception', permission: 'visits.create'),
+  _Destination(Icons.confirmation_number_outlined, Icons.confirmation_number,
+      'Очередь', '/queue', permission: 'queue.read'),
   _Destination(Icons.people_outline, Icons.people, 'Пациенты', '/patients'),
   _Destination(Icons.biotech_outlined, Icons.biotech, 'Оборудование', '/devices',
       permission: 'devices.read'),
