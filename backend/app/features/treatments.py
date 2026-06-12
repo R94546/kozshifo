@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from app.core.audit import record_audit
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_permission
+from app.core.notify import check_low_stock
 from app.core.stock import InsufficientStockError, write_off_fefo
 from app.models.inventory import Product
 from app.models.operation import Treatment
@@ -144,6 +145,7 @@ def dispense_treatment(
                  actor_id=actor.id, branch_id=visit.branch_id,
                  summary=f"Dispensed {treatment.quantity} x {product.name} for «{treatment.name}»")
     db.commit()
+    check_low_stock(db, [treatment.product_id], visit.branch_id)  # post-commit, never raises
     db.refresh(treatment)
     return treatment
 

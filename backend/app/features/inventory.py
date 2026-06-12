@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from app.core.audit import record_audit
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_permission
+from app.core.notify import check_low_stock
 from app.core.stock import InsufficientStockError, receive_stock, write_off_fefo
 from app.models.branch import Branch
 from app.models.inventory import InventoryCategory, Product, StockBatch, Supplier
@@ -292,4 +293,5 @@ def write_off(
                  branch_id=payload.branch_id,
                  summary=f"Write-off {payload.quantity} {product.unit} of {product.name}: {payload.reason}")
     db.commit()
+    check_low_stock(db, [payload.product_id], payload.branch_id)  # post-commit, never raises
     return [MovementOut.model_validate(m) for m in movements]

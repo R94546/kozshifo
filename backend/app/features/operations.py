@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from app.core.audit import record_audit
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_permission
+from app.core.notify import check_low_stock
 from app.core.stock import InsufficientStockError, on_hand, write_off_fefo
 from app.features.visits import _make_item, _recompute_total
 from app.models.catalog import Service
@@ -196,6 +197,7 @@ def perform_operation(
                  summary=f"Performed operation {op_type.name} ({operation.eye}); "
                          f"auto write-off: {len(op_type.consumables)} positions")
     db.commit()
+    check_low_stock(db, [l.product_id for l in op_type.consumables], visit.branch_id)  # post-commit
     db.refresh(operation)
     return operation
 

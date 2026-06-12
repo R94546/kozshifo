@@ -65,6 +65,8 @@ PERMISSIONS: list[tuple[str, str, str]] = [
     ("treatments.read", "treatment", "View treatment prescriptions"),
     ("treatments.prescribe", "treatment", "Prescribe / cancel treatments"),
     ("treatments.perform", "treatment", "Dispense / complete treatments"),
+    # Notifications
+    ("notifications.read", "notifications", "View notification log"),
     # Director
     ("dashboard.view", "dashboard", "View director dashboard / KPIs"),
     ("audit.read", "audit", "View audit log"),
@@ -100,6 +102,6 @@ ROLE_TEMPLATES: dict[str, list[str]] = {
     ],
     "Warehouse": [
         "inventory.read", "inventory.manage", "inventory.write_off",
-        "branches.read",
+        "branches.read", "notifications.read",
     ],
 }

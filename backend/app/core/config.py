@@ -29,6 +29,15 @@ class Settings(BaseSettings):
     # Database — SQLite by default so the platform runs with zero external setup.
     database_url: str = "sqlite:///./kozshifo.db"
 
+    # File storage for device-result binaries (B-scans etc.).
+    # In the Docker image point this at the writable volume: /app/data/uploads.
+    upload_dir: str = "./uploads"
+
+    # Notifications — Telegram is optional; without a token events are only
+    # logged to the notifications table.
+    telegram_bot_token: str | None = None
+    telegram_chat_id: str | None = None
+
     # CORS
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8080", "http://localhost:5173"]
 
