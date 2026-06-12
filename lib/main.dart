@@ -1,8 +1,22 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/app.dart';
+import 'firebase_options.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Firebase (проект kozshifo-32e6f) — облачная инфраструктура до прихода
+  // собственного сервера (план: БД переедет туда, см. docs/FIREBASE.md).
+  // Инициализация строго best-effort: клиника должна работать и без сети до
+  // Firebase — ошибка логируется, приложение стартует в любом случае.
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Firebase init skipped: $e');
+  }
   runApp(const ProviderScope(child: KozShifoApp()));
 }

@@ -48,6 +48,11 @@ tokens re-deriving the project from scratch.
   exam autosave drafts every 3s with restore banner · doctor's frequent
   diagnoses as one-tap chips · phone-first reception registration ·
   persisted light/dark/system theme cycle).
+- **Firebase: 🚧 wired** — app linked to project `kozshifo-32e6f`
+  (`lib/firebase_options.dart`, best-effort init in `main.dart`,
+  build_runner verified alive). FCM/hosting and the DB-to-own-server
+  migration plan live in **`docs/FIREBASE.md`** — read it before touching
+  anything Firebase.
 - **Everything else: ⬜ planned** — see `PLATFORM.md` §4 matrix.
 
 **Works end-to-end today (all clickable in the app):**
