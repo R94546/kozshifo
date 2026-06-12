@@ -122,7 +122,14 @@ flutter test                                                    # 50 passed
 # TV board (waiting-room screen): open in any browser, no login required
 #   http://127.0.0.1:8000/tv/<branch_id>   (link dialog: Queue screen → TV icon)
 ```
-Login: **`director@kozshifo.uz` / `Director!2026`** (auto-seeded on first backend run).
+Logins (auto-seeded; demo staff are **dev-only**, never seeded in production):
+| Роль | Логин | Пароль |
+|---|---|---|
+| Директор (суперюзер) | `director@kozshifo.uz` | `Director!2026` |
+| Врач | `vrach@kozshifo.uz` | `Vrach!2026` |
+| Ресепшен | `reception@kozshifo.uz` | `Reception!2026` |
+| Кассир | `kassa@kozshifo.uz` | `Kassa!2026` |
+| Склад | `sklad@kozshifo.uz` | `Sklad!2026` |
 
 ## 4. Backend conventions — how to extend
 
