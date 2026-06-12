@@ -67,6 +67,16 @@ PERMISSIONS: list[tuple[str, str, str]] = [
     ("treatments.perform", "treatment", "Dispense / complete treatments"),
     # Notifications
     ("notifications.read", "notifications", "View notification log"),
+    # Attendance (TZ Modul 1 — Face ID time tracking)
+    ("attendance.read", "attendance", "View staff attendance reports"),
+    ("attendance.manage", "attendance", "Record manual attendance punches"),
+    # Finance: expenses & payroll (TZ Modul 8)
+    ("expenses.read", "finance", "View clinic expenses"),
+    ("expenses.manage", "finance", "Record / edit clinic expenses"),
+    ("payroll.read", "finance", "View payroll calculations"),
+    ("payroll.manage", "finance", "Post payroll payouts"),
+    # IP telephony (TZ Modul 9)
+    ("calls.read", "calls", "View / search call records"),
     # Director
     ("dashboard.view", "dashboard", "View director dashboard / KPIs"),
     ("audit.read", "audit", "View audit log"),
@@ -90,6 +100,7 @@ ROLE_TEMPLATES: dict[str, list[str]] = {
         "patients.read", "visits.read",
         "payments.read", "payments.create",
         "queue.read", "queue.manage", "services.read",
+        "expenses.read", "expenses.manage", "payroll.read",
     ],
     "Doctor": [
         "patients.read", "visits.read", "visits.update",

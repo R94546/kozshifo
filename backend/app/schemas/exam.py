@@ -28,6 +28,12 @@ class EyeExamUpsert(BaseModel):
     os_axis: int | None = Field(None, ge=0, le=180)
     od_va_cc: str | None = Field(None, max_length=32)
     os_va_cc: str | None = Field(None, max_length=32)
+    # VA with the patient's OWN glasses/lenses (TZ Modul 4 «своими»)
+    od_va_own: str | None = Field(None, max_length=32)
+    os_va_own: str | None = Field(None, max_length=32)
+
+    # Поле зрения (TZ Modul 4)
+    visual_field: str | None = None
 
     iop_od: Decimal | None = Field(None, ge=Decimal("0"), le=Decimal("99.9"))
     iop_os: Decimal | None = Field(None, ge=Decimal("0"), le=Decimal("99.9"))
@@ -76,6 +82,10 @@ class EyeExamOut(BaseModel):
     os_axis: int | None
     od_va_cc: str | None
     os_va_cc: str | None
+    od_va_own: str | None
+    os_va_own: str | None
+
+    visual_field: str | None
 
     iop_od: Decimal | None
     iop_os: Decimal | None

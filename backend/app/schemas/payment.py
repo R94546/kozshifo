@@ -3,15 +3,19 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
+
+# Closed vocabulary (TZ Modul 2.2): anything else is a 422 before touching the DB.
+PaymentMethod = Literal["cash", "card", "qr", "transfer"]
 
 
 class PaymentCreate(BaseModel):
     visit_id: UUID
     amount: Decimal = Field(gt=0)
-    method: str = "cash"  # cash | card | transfer
+    method: PaymentMethod = "cash"
     note: str | None = None
     # Issue a queue ticket when the visit becomes fully paid (default behaviour).
     issue_queue_ticket: bool = True

@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 
-from sqlalchemy import Boolean, ForeignKey, String, Uuid
+from sqlalchemy import Boolean, ForeignKey, Numeric, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -24,6 +25,9 @@ class User(UUIDPKMixin, TimestampMixin, Base):
     branch_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("branches.id", ondelete="SET NULL"), nullable=True
     )
+    # Payroll (TZ Modul 8): doctor's cut of revenue from their visits, in
+    # percent. NULL = not on percent-based pay.
+    salary_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
 
     roles: Mapped[list[Role]] = relationship(
         secondary=user_roles, back_populates="users", lazy="selectin"

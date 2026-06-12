@@ -9,6 +9,17 @@ from decimal import Decimal
 from tests.conftest import API, DIRECTOR_EMAIL
 
 
+def _park_other_waiting(client, auth, branch_id, track, keep_id=None):
+    """Skip foreign waiting tickets of a track (tests share one session DB) so
+    call-next deterministically claims ours. Skip never auto-advances.
+    Mirrors the helper in tests/test_queue_tracks.py."""
+    rows = client.get(f"{API}/queue", headers=auth,
+                      params={"branch_id": branch_id, "track": track}).json()
+    for t in rows:
+        if t["status"] == "waiting" and t["id"] != keep_id:
+            assert client.post(f"{API}/queue/{t['id']}/skip", headers=auth).status_code == 200
+
+
 def test_health(client):
     resp = client.get("/health")
     assert resp.status_code == 200
@@ -76,13 +87,18 @@ def test_full_patient_journey(client, auth):
 
     # 4) Ticket is waiting in the queue.
     queue = client.get(f"{API}/queue", headers=auth, params={"branch_id": branch_id}).json()
-    assert any(t["ticket_number"] == ticket_number and t["status"] == "waiting" for t in queue)
+    mine = next(t for t in queue if t["ticket_number"] == ticket_number)
+    assert mine["status"] == "waiting"
 
     # 5) Call it to a room (the ticket lives on the diagnostic track).
+    # Other test modules may have left older waiting tickets in the shared
+    # session DB; park them so call-next provably claims THIS journey's ticket.
+    _park_other_waiting(client, auth, branch_id, "diagnostic", keep_id=mine["id"])
     called = client.post(
         f"{API}/queue/call-next", headers=auth,
         json={"branch_id": branch_id, "room": "Каб. 1", "track": "diagnostic"},
     ).json()
+    assert called["ticket_number"] == ticket_number  # ours, not a stray leftover
     assert called["status"] == "called"
     assert called["room"] == "Каб. 1"
     assert called["track"] == "diagnostic"

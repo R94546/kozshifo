@@ -21,7 +21,7 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -316,9 +316,19 @@ def insights(db: Annotated[Session, Depends(get_db)]) -> list[InsightOut]:
         ))
 
     # ── unpaid_balance (info): outstanding money over open visits.
+    #    Due = payable (total minus reception discount), mirroring Visit.payable.
+    _discount = case(
+        (Visit.discount_percent.is_not(None),
+         Visit.total_amount * Visit.discount_percent / 100),
+        (Visit.discount_amount.is_not(None),
+         case((Visit.discount_amount > Visit.total_amount, Visit.total_amount),
+              else_=Visit.discount_amount)),
+        else_=0,
+    )
+    _payable = Visit.total_amount - _discount
     outstanding = Decimal(db.execute(
-        select(func.coalesce(func.sum(Visit.total_amount - Visit.paid_amount), 0))
-        .where(Visit.status == "open", Visit.total_amount > Visit.paid_amount)
+        select(func.coalesce(func.sum(_payable - Visit.paid_amount), 0))
+        .where(Visit.status == "open", _payable > Visit.paid_amount)
     ).scalar_one()).quantize(Decimal("0.01"))
     if outstanding > 0:
         found.append(InsightOut(

@@ -1,6 +1,7 @@
 """Staff user DTOs."""
 from __future__ import annotations
 
+from decimal import Decimal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -22,6 +23,9 @@ class UserUpdate(BaseModel):
     is_active: bool | None = None
     branch_id: UUID | None = None
     role_names: list[str] | None = None
+    # Percent-based payroll (TZ Modul 8): doctor's cut of revenue from their
+    # visits. Explicit null clears it (= not on percent-based pay).
+    salary_percent: Decimal | None = Field(default=None, ge=0, le=100)
 
 
 class RoleRef(BaseModel):
@@ -41,4 +45,5 @@ class UserOut(BaseModel):
     is_active: bool
     is_superuser: bool
     branch_id: UUID | None
+    salary_percent: Decimal | None
     roles: list[RoleRef]

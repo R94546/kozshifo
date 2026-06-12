@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     telegram_bot_token: str | None = None
     telegram_chat_id: str | None = None
 
+    # Integration seams — shared-secret keys for unattended hardware.
+    # Endpoints answer 503 while the key is unset (integration disabled).
+    attendance_api_key: str | None = None  # Face ID terminal -> POST /attendance/punch
+    pbx_api_key: str | None = None  # PBX/Asterisk -> POST /calls/ingest
+    # Workday start "HH:MM" (clinic local time) — first punch-in after this is "late".
+    work_day_start: str = "09:00"
+
     # CORS
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8080", "http://localhost:5173"]
 

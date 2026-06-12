@@ -28,6 +28,6 @@ class Payment(UUIDPKMixin, TimestampMixin, Base):
         Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    method: Mapped[str] = mapped_column(String(16), default="cash", nullable=False)  # cash|card|transfer
+    method: Mapped[str] = mapped_column(String(16), default="cash", nullable=False)  # cash|card|qr|transfer
     status: Mapped[str] = mapped_column(String(16), default="completed", nullable=False)  # completed|refunded
     note: Mapped[str | None] = mapped_column(String(512), nullable=True)

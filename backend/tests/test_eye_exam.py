@@ -9,6 +9,8 @@ _EXAM_PAYLOAD = {
     "anamnesis": "Миопия с детства",
     "od_va": "0.6", "od_sph": "-1.25", "od_cyl": "-0.50", "od_axis": 170, "od_va_cc": "1.0",
     "os_va": "0.7", "os_sph": "-1.00", "os_cyl": "-0.25", "os_axis": 10, "os_va_cc": "1.0",
+    "od_va_own": "0.8", "os_va_own": "0.9",
+    "visual_field": "в пределах нормы",
     "iop_od": "16.0", "iop_os": "17.0",
     "cornea": "прозрачная", "lens": "прозрачный",
     "fundus": "ДЗН бледно-розовый, границы чёткие",
@@ -43,6 +45,9 @@ def test_upsert_creates_then_updates_exam(client, auth):
     assert body["od_sph"] == "-1.25"
     assert body["od_axis"] == 170
     assert body["iop_os"] == "17.0"
+    assert body["od_va_own"] == "0.8"
+    assert body["os_va_own"] == "0.9"
+    assert body["visual_field"] == "в пределах нормы"
     assert body["diagnosis"] == "Миопия слабой степени OU"
     assert body["doctor_id"]  # defaulted to the current user
     exam_id = body["id"]
@@ -57,6 +62,8 @@ def test_upsert_creates_then_updates_exam(client, auth):
     assert body2["diagnosis"] == "Миопия средней степени OU"
     assert body2["od_sph"] == "-2.75"
     assert body2["complaints"] == _EXAM_PAYLOAD["complaints"]  # untouched fields survive
+    assert body2["visual_field"] == "в пределах нормы"
+    assert body2["od_va_own"] == "0.8"
 
     fetched = client.get(f"{API}/visits/{visit_id}/exam", headers=auth).json()
     assert fetched["id"] == exam_id

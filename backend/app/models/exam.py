@@ -46,6 +46,12 @@ class EyeExam(UUIDPKMixin, TimestampMixin, Base):
     os_axis: Mapped[int | None] = mapped_column(Integer, nullable=True)  # 0–180
     od_va_cc: Mapped[str | None] = mapped_column(String(32), nullable=True)
     os_va_cc: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # VA with the patient's OWN glasses/lenses (TZ Modul 4 «своими» — optional)
+    od_va_own: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    os_va_own: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
+    # Visual field — поле зрения (TZ Modul 4, mandatory line on the form)
+    visual_field: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Tonometry (mmHg)
     iop_od: Mapped[Decimal | None] = mapped_column(Numeric(4, 1), nullable=True)

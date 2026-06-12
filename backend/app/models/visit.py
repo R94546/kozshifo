@@ -43,6 +43,11 @@ class Visit(UUIDPKMixin, TimestampMixin, Base):
     )
     total_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"), nullable=False)
     paid_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"), nullable=False)
+    # Reception discount (TZ Modul 2.2): EITHER percent OR fixed amount, plus a
+    # mandatory reason when set. total_amount stays gross; payable applies it.
+    discount_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    discount_amount: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    discount_reason: Mapped[str | None] = mapped_column(String(128), nullable=True)
     notes: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     opened_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -55,8 +60,23 @@ class Visit(UUIDPKMixin, TimestampMixin, Base):
     )
 
     @property
+    def discount_value(self) -> Decimal:
+        """Discount in currency, derived from percent or fixed amount (capped at total)."""
+        total = Decimal(self.total_amount)
+        if self.discount_percent:
+            return (total * Decimal(self.discount_percent) / Decimal("100")).quantize(Decimal("0.01"))
+        if self.discount_amount:
+            return min(Decimal(self.discount_amount), total)
+        return Decimal("0.00")
+
+    @property
+    def payable(self) -> Decimal:
+        """What the patient actually owes: gross total minus discount."""
+        return Decimal(self.total_amount) - self.discount_value
+
+    @property
     def balance(self) -> Decimal:
-        return Decimal(self.total_amount) - Decimal(self.paid_amount)
+        return self.payable - Decimal(self.paid_amount)
 
 
 class VisitItem(UUIDPKMixin, TimestampMixin, Base):

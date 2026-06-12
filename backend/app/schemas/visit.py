@@ -5,12 +5,38 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class VisitItemAdd(BaseModel):
     service_id: UUID
     quantity: int = Field(default=1, ge=1)
+
+
+class VisitDiscountApply(BaseModel):
+    """Reception discount (TZ Modul 2.2).
+
+    Apply: exactly ONE of percent / fixed amount, plus a mandatory reason.
+    Re-applying overwrites the previous discount. `{"clear": true}` removes it
+    (only while the visit is open and unpaid — enforced in the endpoint).
+    """
+
+    discount_percent: Decimal | None = Field(None, gt=Decimal("0"), le=Decimal("100"))
+    discount_amount: Decimal | None = Field(None, gt=Decimal("0"))
+    discount_reason: str | None = Field(None, max_length=128)
+    clear: bool = False
+
+    @model_validator(mode="after")
+    def _exactly_one_kind(self) -> "VisitDiscountApply":
+        if self.clear:
+            if self.discount_percent is not None or self.discount_amount is not None:
+                raise ValueError("clear=true cannot be combined with a new discount")
+            return self
+        if (self.discount_percent is None) == (self.discount_amount is None):
+            raise ValueError("Provide exactly one of discount_percent or discount_amount")
+        if not (self.discount_reason or "").strip():
+            raise ValueError("discount_reason is required when applying a discount")
+        return self
 
 
 class VisitCreate(BaseModel):
@@ -49,6 +75,13 @@ class VisitOut(BaseModel):
     flow_status: str
     total_amount: Decimal
     paid_amount: Decimal
+    # Reception discount (TZ Modul 2.2). discount_value / payable are model
+    # properties computed server-side; all Decimals serialize as strings.
+    discount_percent: Decimal | None
+    discount_amount: Decimal | None
+    discount_reason: str | None
+    discount_value: Decimal
+    payable: Decimal
     balance: Decimal
     notes: str | None
     opened_at: datetime

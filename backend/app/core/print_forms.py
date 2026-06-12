@@ -166,6 +166,9 @@ def build_exam_card_pdf(exam: EyeExam) -> bytes:
     w.text("Шикоятлари:", exam.complaints)
     w.text(_visus_line("OD", exam.od_va, exam.od_sph, exam.od_cyl, exam.od_axis, exam.od_va_cc))
     w.text(_visus_line("OS", exam.os_va, exam.os_sph, exam.os_cyl, exam.os_axis, exam.os_va_cc))
+    own = f"OD {_fmt(exam.od_va_own) or '—'} / OS {_fmt(exam.os_va_own) or '—'}"
+    w.text("Своими очками/линзами:", own)
+    w.text("Поле зрения:", exam.visual_field)
     w.text("Анамнез:", exam.anamnesis)
     iop = f"OD {_fmt(exam.iop_od) or '—'} / OS {_fmt(exam.iop_os) or '—'} мм с.у."
     w.text("Кўз ички босими:", iop)

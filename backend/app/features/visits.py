@@ -21,7 +21,7 @@ from app.models.patient import Patient
 from app.models.queue import QueueTicket
 from app.models.visit import Visit, VisitItem
 from app.schemas.common import Page
-from app.schemas.visit import VisitCreate, VisitItemAdd, VisitOut
+from app.schemas.visit import VisitCreate, VisitDiscountApply, VisitItemAdd, VisitOut
 
 router = APIRouter(prefix="/visits", tags=["Visits"])
 
@@ -119,6 +119,69 @@ def add_visit_item(
     _recompute_total(visit)
     record_audit(db, action="update", entity_type="visit", entity_id=visit.id, actor_id=actor.id,
                  summary=f"Added service to visit {visit.visit_no}")
+    db.commit()
+    db.refresh(visit)
+    return visit
+
+
+def _discount_snapshot(visit: Visit) -> dict[str, str | None]:
+    """JSON-safe before/after picture for the audit trail."""
+    return {
+        "discount_percent": str(visit.discount_percent) if visit.discount_percent is not None else None,
+        "discount_amount": str(visit.discount_amount) if visit.discount_amount is not None else None,
+        "discount_reason": visit.discount_reason,
+        "payable": str(visit.payable),
+    }
+
+
+@router.post("/{visit_id}/discount", response_model=VisitOut)
+def apply_discount(
+    visit_id: UUID,
+    payload: VisitDiscountApply,
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[CurrentUser, Depends(require_permission("visits.update"))],
+) -> Visit:
+    """Apply, overwrite or clear the reception discount (TZ Modul 2.2).
+
+    total_amount stays gross; `payable` (= total - discount) becomes the due
+    basis for payments. Every change is audited with a before/after snapshot.
+    """
+    visit = db.get(Visit, visit_id)
+    if visit is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Visit not found")
+    if visit.status in ("completed", "cancelled"):
+        raise HTTPException(status.HTTP_409_CONFLICT,
+                            f"Cannot change discount on a {visit.status} visit")
+
+    before = _discount_snapshot(visit)
+    if payload.clear:
+        if Decimal(visit.paid_amount) > Decimal("0.00"):
+            raise HTTPException(status.HTTP_409_CONFLICT,
+                                "Cannot clear a discount after payments were taken — refund first")
+        visit.discount_percent = None
+        visit.discount_amount = None
+        visit.discount_reason = None
+    else:
+        # Guard: the new payable must not drop below what is already paid,
+        # otherwise the visit silently becomes overpaid.
+        total = Decimal(visit.total_amount)
+        if payload.discount_percent is not None:
+            new_value = (total * payload.discount_percent / Decimal("100")).quantize(Decimal("0.01"))
+        else:
+            new_value = min(Decimal(payload.discount_amount), total)
+        if total - new_value < Decimal(visit.paid_amount):
+            raise HTTPException(status.HTTP_409_CONFLICT,
+                                "Discount would drop payable below the amount already paid — refund first")
+        visit.discount_percent = payload.discount_percent
+        visit.discount_amount = payload.discount_amount
+        visit.discount_reason = (payload.discount_reason or "").strip()
+
+    action = "discount_clear" if payload.clear else "discount"
+    record_audit(db, action=action, entity_type="visit", entity_id=visit.id, actor_id=actor.id,
+                 branch_id=visit.branch_id,
+                 summary=(f"{'Cleared' if payload.clear else 'Applied'} discount on visit "
+                          f"{visit.visit_no} (payable {visit.payable})"),
+                 changes={"before": before, "after": _discount_snapshot(visit)})
     db.commit()
     db.refresh(visit)
     return visit
