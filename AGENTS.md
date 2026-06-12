@@ -48,6 +48,18 @@ tokens re-deriving the project from scratch.
   exam autosave drafts every 3s with restore banner · doctor's frequent
   diagnoses as one-tap chips · phone-first reception registration ·
   persisted light/dark/system theme cycle).
+- **TZ completion (официальное ТЗ клиники, `Ko'z_Shifo_.docx`): ✅ core done**
+  (Modul 1 учёт времени: Face ID punch-webhook `X-Attendance-Key` + ручные
+  отметки + табель с опозданиями/пропусками + CSV · Modul 8 финансы: расходы,
+  зарплата врача по проценту (`users.salary_percent`, идемпотентная выплата
+  по (user, month)), дневной/месячный кассовый отчёт по методам, CSV ·
+  Modul 9 журнал звонков: PBX-webhook `X-PBX-Key`, автопривязка пациента по
+  последним 9 цифрам · Modul 2.2 скидки на визит (процент XOR сумма + причина,
+  `payable` вместо `total` во всех расчётах) + метод оплаты QR · Modul 4 поле
+  зрения + Visus своими очками на форме 025-8 · Flutter: `/finance`,
+  `/attendance`, `/calls`, диалог скидки, ролевой лендинг + меню по правам.
+  Остались железные интеграции: реальный Face ID терминал и PBX → см. ключи
+  `ATTENDANCE_API_KEY`/`PBX_API_KEY` в `core/config.py`).
 - **Firebase: 🚧 wired** — app linked to project `kozshifo-32e6f`
   (`lib/firebase_options.dart`, best-effort init in `main.dart`,
   build_runner verified alive). FCM/hosting and the DB-to-own-server
@@ -65,9 +77,9 @@ exam → pulls refraction from the RMK-700 device result → prints official
 card.pdf`, on top of **JWT auth · dynamic RBAC (no hardcoded roles) · audit log
 on every mutation · multi-branch**.
 
-**Verified green:** backend `pytest` = 105 passed · Flutter `flutter test` = 50 passed
+**Verified green:** backend `pytest` = 140 passed · Flutter `flutter test` = 79 passed
 · `flutter analyze` = no issues · `flutter build web` = builds ·
-`alembic upgrade head` + `alembic check` = clean (6 revisions).
+`alembic upgrade head` + `alembic check` = clean (7 revisions).
 
 ## 2. Repo map (where things live)
 
@@ -84,7 +96,8 @@ backend/                     FastAPI service (system of record)
     schemas/   Pydantic v2 DTOs
     features/  one router+service per feature (auth, users, roles, permissions,
                branches, patients, catalog, visits, payments, queue, dashboard,
-               exams, devices, inventory, operations, treatments)
+               exams, devices, inventory, operations, treatments, timeline,
+               search, attendance, finance, calls, notifications)
     api.py     aggregates routers under /api/v1
     seed.py    idempotent bootstrap (permissions, roles, branch, director, services)
     main.py    app factory, CORS, lifespan (create schema + seed)
@@ -95,7 +108,8 @@ lib/                         Flutter app
   features/<x>/{domain,data,application,presentation}   ← Clean Architecture
                auth · dashboard · patients · reception · queue ·
                doctor (card 025-8) · clinical (operations/treatments) ·
-               devices · inventory (Склад) · splash
+               devices · inventory (Склад) · finance · attendance · calls ·
+               admin · search · splash
 test/          Flutter unit tests
 PLATFORM.md · README.md · CLAUDE.md
 ```
@@ -108,7 +122,7 @@ cd backend
 python -m venv .venv
 ./.venv/Scripts/python.exe -m pip install -r requirements.txt   # Windows path
 ./.venv/Scripts/python.exe -m uvicorn app.main:app --reload
-./.venv/Scripts/python.exe -m pytest -q                         # 105 passed
+./.venv/Scripts/python.exe -m pytest -q                         # 140 passed
 ./.venv/Scripts/alembic.exe upgrade head                        # migrations (prod path)
 
 # Docker (on a Docker-capable host; dev machine has none)
@@ -117,7 +131,7 @@ docker compose up --build                                       # api :8000 + Po
 # Flutter  (separate terminal, from repo root)
 flutter pub get
 flutter run -d chrome                                           # dev: any localhost port OK
-flutter test                                                    # 50 passed
+flutter test                                                    # 79 passed
 
 # TV board (waiting-room screen): open in any browser, no login required
 #   http://127.0.0.1:8000/tv/<branch_id>   (link dialog: Queue screen → TV icon)

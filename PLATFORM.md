@@ -76,7 +76,7 @@ Legend: ✅ foundation built & tested · 🚧 partial · ⬜ planned (phase)
 | 1 | Identity & Access | ✅ | JWT, users, dynamic roles/permissions, RBAC guard |
 | 2 | Patients | ✅ | CRUD, MRN, search |
 | 3 | Reception / Visits | ✅ | Visit + billed items, totals/balance |
-| 4 | Finance (Payments) | 🚧 | Take/refund payment, receipts; full ledger/cashflow ⬜ |
+| 4 | Finance (Payments) | ✅ | Take/refund payment (cash/card/QR/transfer), receipts, **visit discounts** (percent XOR amount + reason, payable-based balance), **expenses (rashod)**, daily/monthly cash reports by method + CSV (`/finance`) |
 | 5 | Queue | ✅ | **Two-track** D-diagnostics → auto V-doctor (no receptionist), per-track call-next, day-scoped, race-guarded |
 | 6 | TV Queue | ✅ | 2x2 board (doctor blue / diagnostics green): big called number + cabinet + specialist, next-8 tables, voice announcements |
 | 7 | Service Catalog | ✅ | Categories, priced services |
@@ -90,8 +90,10 @@ Legend: ✅ foundation built & tested · 🚧 partial · ⬜ planned (phase)
 | 15 | Operations | ✅ | Types with consumable templates, prescribe→bills the visit, perform→FEFO auto write-off |
 | 16 | Inventory / Warehouse | ✅ | Products, batches/expiry, FEFO engine, min-stock alerts, movement ledger; transfers/stocktake ⬜ |
 | 17 | Purchasing / Suppliers | 🚧 | Suppliers + goods receipts live; purchase orders ⬜ |
-| 18 | Payroll | ⬜ | Phase 5 |
+| 18 | Payroll | ✅ | Percent-based doctor pay (`salary_percent`), monthly calc from completed payments, idempotent payout → expense; CSV (`/finance` → Зарплата) |
 | 19 | CRM | ⬜ | Phase 5 |
+| 24 | Attendance (Face ID) | ✅ | Punch webhook (`X-Attendance-Key`) + manual events, timesheet (late/absent, paired in/out), CSV (`/attendance`); hardware terminal = customer-side |
+| 25 | IP Telephony | ✅ | PBX ingest webhook (`X-PBX-Key`), patient autolink by phone, searchable journal (`/calls`); PBX/Asterisk wiring = deploy-time |
 | 20 | Reports / Analytics | 🚧 | KPI summary live; reporting engine ⬜ Phase 5 |
 | 21 | Notifications | ✅ | Core: log + optional Telegram, low-stock alerts with anti-spam, notification ledger + API; SMS & UI screen ⬜ |
 | 22 | Settings | 🚧 | Env config + seed; runtime settings UI ⬜ |
