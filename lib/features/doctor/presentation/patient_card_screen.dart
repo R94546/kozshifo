@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/utils/file_saver.dart';
 import '../../../core/widgets/async_value_widget.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../devices/data/devices_repository.dart';
+import '../../devices/domain/device_result.dart';
 import '../../patients/data/patients_repository.dart';
 import '../data/doctor_repository.dart';
 import '../domain/eye_exam.dart';
@@ -56,6 +58,7 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
   bool _loadingExam = false;
   bool _saving = false;
   bool _printing = false;
+  bool _applyingRefraction = false;
 
   @override
   void dispose() {
@@ -166,6 +169,36 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
       if (mounted) _snack('$e', error: true);
     } finally {
       if (mounted) setState(() => _printing = false);
+    }
+  }
+
+  /// «Подтянуть из рефрактометра»: берём свежайший refraction-результат визита
+  /// (RMK-700) и копируем sph/cyl/axis в осмотр через apply-refraction.
+  Future<void> _pullFromRefractometer() async {
+    final visitId = _visitId;
+    if (visitId == null) return;
+    setState(() => _applyingRefraction = true);
+    try {
+      final results =
+          await ref.read(devicesRepositoryProvider).resultsForVisit(visitId);
+      final refraction = results.where((r) => r.isRefraction).firstOrNull;
+      if (refraction == null) {
+        _snack('Для этого визита нет результатов рефрактометра', error: true);
+        return;
+      }
+      final exam = await ref
+          .read(doctorRepositoryProvider)
+          .applyRefraction(visitId, refraction.id);
+      if (!mounted) return;
+      setState(() => _exam = exam);
+      _populate(exam);
+      ref.invalidate(visitDeviceResultsProvider(visitId));
+      ref.invalidate(examHistoryProvider(widget.patientId));
+      _snack('Рефракция подтянута из RMK-700');
+    } catch (e) {
+      if (mounted) _snack('$e', error: true);
+    } finally {
+      if (mounted) setState(() => _applyingRefraction = false);
     }
   }
 
@@ -292,6 +325,19 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
           _visusRow('OD (правый глаз)', 'od', enabled),
           const SizedBox(height: 8),
           _visusRow('OS (левый глаз)', 'os', enabled),
+          if (enabled)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: _applyingRefraction ? null : _pullFromRefractometer,
+                icon: _applyingRefraction
+                    ? const SizedBox(
+                        height: 16, width: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.download_outlined),
+                label: const Text('Подтянуть из рефрактометра'),
+              ),
+            ),
         ]),
         _section('Кўз ички босими (ВГД, мм рт.ст.)', [
           Row(children: [
@@ -305,6 +351,10 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
         ]),
         _section('Кўз A/B-скан текшеруви', [
           _text('ab_scan_note', 'Заключение A/B-скан', enabled, maxLines: 2),
+          if (_visitId != null &&
+              (ref.watch(authControllerProvider).user?.can('device_results.read') ??
+                  false))
+            _AbScanResults(visitId: _visitId!),
         ]),
         _section('Ташхис / Тавсия (заключение)', [
           _text('diagnosis', 'Ташхис (диагноз)', enabled, maxLines: 2),
@@ -407,5 +457,45 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
         },
       ),
     ]);
+  }
+}
+
+/// Прикреплённые к визиту результаты A/B-скана (CAS-2000BER): снимки,
+/// биометрия, файлы — список с метаданными (превью бинарников — позже).
+class _AbScanResults extends ConsumerWidget {
+  const _AbScanResults({required this.visitId});
+
+  final String visitId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final results = ref.watch(visitDeviceResultsProvider(visitId));
+    return AsyncValueWidget<List<DeviceResult>>(
+      value: results,
+      onRetry: () => ref.invalidate(visitDeviceResultsProvider(visitId)),
+      builder: (items) {
+        final scans = items.where((r) => r.isScan).toList();
+        if (scans.isEmpty) {
+          return Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Прикреплённых сканов нет.',
+                style: Theme.of(context).textTheme.bodySmall),
+          );
+        }
+        return Column(
+          children: [
+            for (final r in scans)
+              ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.image_outlined),
+                title: Text(r.filePath ?? r.resultType),
+                subtitle: Text(
+                    '${r.resultType} · ${r.measuredAt.replaceFirst('T', ' ').split('.').first}'),
+              ),
+          ],
+        );
+      },
+    );
   }
 }

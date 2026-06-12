@@ -1,0 +1,61 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/network/api_exception.dart';
+import '../../../core/network/dio_client.dart';
+import '../../../core/network/page.dart';
+import '../domain/device.dart';
+import '../domain/device_result.dart';
+
+final devicesRepositoryProvider =
+    Provider<DevicesRepository>((ref) => DevicesRepository(ref.watch(dioProvider)));
+
+class DevicesRepository {
+  DevicesRepository(this._dio);
+
+  final Dio _dio;
+
+  Future<Page<Device>> list({int offset = 0, int limit = 50}) async {
+    try {
+      final resp = await _dio.get('/devices',
+          queryParameters: {'offset': offset, 'limit': limit});
+      return Page.fromJson(resp.data as Map<String, dynamic>, Device.fromJson);
+    } on DioException catch (e) {
+      throw ApiException.from(e);
+    }
+  }
+
+  Future<List<DeviceResult>> recentResults(String deviceId, {int limit = 20}) async {
+    try {
+      final resp = await _dio.get('/devices/$deviceId/results',
+          queryParameters: {'limit': limit});
+      return (resp.data as List<dynamic>)
+          .map((e) => DeviceResult.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.from(e);
+    }
+  }
+
+  Future<List<DeviceResult>> resultsForVisit(String visitId) async {
+    try {
+      final resp = await _dio.get('/visits/$visitId/device-results');
+      return (resp.data as List<dynamic>)
+          .map((e) => DeviceResult.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.from(e);
+    }
+  }
+}
+
+final devicesListProvider = FutureProvider.autoDispose<Page<Device>>(
+    (ref) => ref.watch(devicesRepositoryProvider).list());
+
+final deviceRecentResultsProvider = FutureProvider.autoDispose
+    .family<List<DeviceResult>, String>((ref, deviceId) =>
+        ref.watch(devicesRepositoryProvider).recentResults(deviceId));
+
+final visitDeviceResultsProvider = FutureProvider.autoDispose
+    .family<List<DeviceResult>, String>((ref, visitId) =>
+        ref.watch(devicesRepositoryProvider).resultsForVisit(visitId));

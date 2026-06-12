@@ -5,16 +5,22 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/application/auth_controller.dart';
 
 class _Destination {
-  const _Destination(this.icon, this.selectedIcon, this.label, this.route);
+  const _Destination(this.icon, this.selectedIcon, this.label, this.route,
+      {this.permission});
   final IconData icon;
   final IconData selectedIcon;
   final String label;
   final String route;
+
+  /// Permission code required to see this destination (null = visible to all).
+  final String? permission;
 }
 
-const _destinations = <_Destination>[
+const _allDestinations = <_Destination>[
   _Destination(Icons.dashboard_outlined, Icons.dashboard, 'Дашборд', '/dashboard'),
   _Destination(Icons.people_outline, Icons.people, 'Пациенты', '/patients'),
+  _Destination(Icons.biotech_outlined, Icons.biotech, 'Оборудование', '/devices',
+      permission: 'devices.read'),
 ];
 
 /// App chrome: a navigation rail + the routed page body.
@@ -29,9 +35,14 @@ class AppShell extends ConsumerWidget {
     final user = ref.watch(authControllerProvider).user;
     final extended = MediaQuery.sizeOf(context).width >= 920;
 
+    final destinations = [
+      for (final d in _allDestinations)
+        if (d.permission == null || (user?.can(d.permission!) ?? false)) d,
+    ];
+
     int? selected;
-    for (var i = 0; i < _destinations.length; i++) {
-      if (location.startsWith(_destinations[i].route)) selected = i;
+    for (var i = 0; i < destinations.length; i++) {
+      if (location.startsWith(destinations[i].route)) selected = i;
     }
 
     return Scaffold(
@@ -40,14 +51,14 @@ class AppShell extends ConsumerWidget {
           NavigationRail(
             extended: extended,
             selectedIndex: selected,
-            onDestinationSelected: (i) => context.go(_destinations[i].route),
+            onDestinationSelected: (i) => context.go(destinations[i].route),
             leading: Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
               child: Icon(Icons.remove_red_eye_outlined,
                   color: Theme.of(context).colorScheme.primary, size: 30),
             ),
             destinations: [
-              for (final d in _destinations)
+              for (final d in destinations)
                 NavigationRailDestination(
                   icon: Icon(d.icon),
                   selectedIcon: Icon(d.selectedIcon),
