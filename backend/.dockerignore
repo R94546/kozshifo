@@ -1,0 +1,29 @@
+# Keep the build context lean — the image only needs requirements.txt, app/,
+# alembic/ and alembic.ini (see Dockerfile COPY lines).
+
+# Python artifacts
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local data & secrets — must never reach the image
+.env
+*.db
+*.sqlite3
+
+# Not needed at runtime
+tests/
+scripts/
+README.md
+.gitignore
+.dockerignore
+Dockerfile
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

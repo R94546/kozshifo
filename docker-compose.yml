@@ -1,0 +1,55 @@
+# KO'Z SHIFO — backend + Postgres.
+#   docker compose up --build        → API on http://localhost:8000 (Swagger /docs)
+#
+# Secrets come from a `.env` file next to this compose file (repo root) via
+# ${VAR:-default} interpolation — nothing sensitive is baked into the images.
+# Minimum for production:  SECRET_KEY=<python -c "import secrets;print(secrets.token_urlsafe(48))">
+
+name: kozshifo
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kozshifo
+      # Override in repo-root .env for real deployments. The default is acceptable
+      # only because the DB is not published to the host (see ports below).
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kozshifo}
+      POSTGRES_DB: kozshifo
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # -U/-d explicit so the probe checks the real app database, not "postgres".
+      test: ["CMD-SHELL", "pg_isready -U kozshifo -d kozshifo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    # No host port by default — only the api container can reach the DB.
+    # Uncomment for host access (psql / GUI clients):
+    # ports:
+    #   - "5432:5432"
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # "db" is the Compose service DNS name; password must match POSTGRES_PASSWORD above.
+      DATABASE_URL: postgresql+psycopg://kozshifo:${POSTGRES_PASSWORD:-kozshifo}@db:5432/kozshifo
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-.env}
+      ENVIRONMENT: production
+      # Seed is idempotent (permissions, roles, MAIN branch, director account) — safe to keep on.
+      SEED_ON_STARTUP: "true"
+      # Production CORS is an explicit allow-list (the any-localhost regex is dev-only).
+      # Set this when the Flutter web client is served from another origin:
+      # CORS_ORIGINS: https://app.kozshifo.uz
+    depends_on:
+      db:
+        condition: service_healthy
+    # Container start runs `alembic upgrade head` before uvicorn (see backend/Dockerfile).
+
+volumes:
+  pgdata:
