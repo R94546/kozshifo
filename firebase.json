@@ -1,1 +1,56 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"kozshifo-32e6f","appId":"1:379102232982:android:34c29ce0acfc70336f5db7","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"kozshifo-32e6f","configurations":{"android":"1:379102232982:android:34c29ce0acfc70336f5db7","web":"1:379102232982:web:4ce7c6f3c58b10fe6f5db7","windows":"1:379102232982:web:7069b12e88475b476f5db7"}}}}}}
+﻿{
+  "hosting": {
+    "public": "build/web",
+    "ignore": ["firebase.json", "**/.*"],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "run": { "serviceId": "kozshifo-api", "region": "europe-west1" }
+      },
+      {
+        "source": "/tv/**",
+        "run": { "serviceId": "kozshifo-api", "region": "europe-west1" }
+      },
+      {
+        "source": "/health",
+        "run": { "serviceId": "kozshifo-api", "region": "europe-west1" }
+      },
+      { "source": "**", "destination": "/index.html" }
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|wasm|css|png|jpg|svg|woff2)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        ]
+      },
+      {
+        "source": "/index.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "kozshifo-32e6f",
+          "appId": "1:379102232982:android:34c29ce0acfc70336f5db7",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "kozshifo-32e6f",
+          "configurations": {
+            "android": "1:379102232982:android:34c29ce0acfc70336f5db7",
+            "web": "1:379102232982:web:4ce7c6f3c58b10fe6f5db7",
+            "windows": "1:379102232982:web:7069b12e88475b476f5db7"
+          }
+        }
+      }
+    }
+  }
+}
