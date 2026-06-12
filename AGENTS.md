@@ -37,17 +37,18 @@ tokens re-deriving the project from scratch.
 - **Everything else: ⬜ planned** — see `PLATFORM.md` §4 matrix.
 
 **Works end-to-end today (all clickable in the app):**
-`Reception screen: register patient → service cart → open Visit → take Payment →
-receipt + auto Queue ticket → Queue screen: call to room / serve / done →
-standalone TV board at /tv/{branch} (no login, privacy-safe) → Director KPIs`,
+`Reception: register → cart → Visit → Payment → auto DIAGNOSTIC ticket (D-…) →
+diagnost calls/serves/completes → system auto-issues the DOCTOR ticket (V-…),
+no receptionist → doctor calls → 2x2 TV board at /tv/{branch} (blue doctor
+half + green diagnostics half, voice announcements, no login) → Director KPIs`,
 plus the clinical loop `Doctor opens patient card (Form 025-8) → fills/edits eye
 exam → pulls refraction from the RMK-700 device result → prints official
 card.pdf`, on top of **JWT auth · dynamic RBAC (no hardcoded roles) · audit log
 on every mutation · multi-branch**.
 
-**Verified green:** backend `pytest` = 63 passed · Flutter `flutter test` = 24 passed
+**Verified green:** backend `pytest` = 82 passed · Flutter `flutter test` = 26 passed
 · `flutter analyze` = no issues · `flutter build web` = builds ·
-`alembic upgrade head` + `alembic check` = clean (4 revisions).
+`alembic upgrade head` + `alembic check` = clean (5 revisions).
 
 ## 2. Repo map (where things live)
 
@@ -88,7 +89,7 @@ cd backend
 python -m venv .venv
 ./.venv/Scripts/python.exe -m pip install -r requirements.txt   # Windows path
 ./.venv/Scripts/python.exe -m uvicorn app.main:app --reload
-./.venv/Scripts/python.exe -m pytest -q                         # 63 passed
+./.venv/Scripts/python.exe -m pytest -q                         # 82 passed
 ./.venv/Scripts/alembic.exe upgrade head                        # migrations (prod path)
 
 # Docker (on a Docker-capable host; dev machine has none)
@@ -97,7 +98,7 @@ docker compose up --build                                       # api :8000 + Po
 # Flutter  (separate terminal, from repo root)
 flutter pub get
 flutter run -d chrome                                           # dev: any localhost port OK
-flutter test                                                    # 24 passed
+flutter test                                                    # 26 passed
 
 # TV board (waiting-room screen): open in any browser, no login required
 #   http://127.0.0.1:8000/tv/<branch_id>   (link dialog: Queue screen → TV icon)

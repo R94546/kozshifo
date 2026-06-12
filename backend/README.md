@@ -119,12 +119,12 @@ tests/
 | Catalog | `GET/POST /service-categories`, `GET/POST/PATCH /services` |
 | Visits | `GET/POST /visits`, `POST /visits/{id}/items`, `POST /visits/{id}/cancel` (unpaid only), `POST /visits/{id}/close` |
 | Finance | `GET/POST /payments`, `POST /payments/{id}/refund` |
-| Queue | `GET /queue`, `POST /queue/call-next`, serve/done/skip, `GET /queue/tv-board/{branch}` (**public**, privacy-safe) |
+| Queue | `GET /queue?track=`, `POST /queue/call-next` (per track), serve/done/skip; diagnostics `done` auto-issues the doctor V-ticket; `GET /queue/tv-board/{branch}` (**public**, two-track) |
 | TV board | `GET /tv/{branch_id}` — standalone waiting-room page (self-contained HTML, no auth) |
 | Director | `GET /dashboard/summary` |
 | EMR | `PUT/GET /visits/{id}/exam`, `GET /visits/{id}/exam/card.pdf` (Form 025-8), `GET /patients/{id}/exams` |
 | Inventory | `/inventory/{categories,suppliers,products,receipts,stock,write-off}` — batches/expiry, FEFO, min-stock |
-| Operations | `GET/POST /operation-types`, `POST /visits/{id}/operations` (bills the visit), `/operations/{id}/perform` (FEFO auto write-off) / `cancel` |
+| Operations | `GET/POST /operation-types`, `GET /operation-types/{id}/availability` (consumables pre-check), `POST /visits/{id}/operations` (bills the visit, priority), `/operations/{id}/perform` (FEFO auto write-off) / `cancel` |
 | Treatment | `POST/GET /visits/{id}/treatments`, `/treatments/{id}/dispense` (stock write-off) / `complete` / `cancel` |
 | Notifications | `GET /notifications` — log/Telegram ledger (low-stock alerts fire on every write-off path) |
 | Devices | `GET/POST/PATCH /devices`, `POST/GET /devices/{id}/results`, `POST /devices/{id}/results/file` (multipart B-scan), `GET /device-results/{id}/file`, `GET /visits/{id}/device-results`, `POST /visits/{id}/exam/apply-refraction?result_id=…` |

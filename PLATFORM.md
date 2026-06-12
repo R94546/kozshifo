@@ -77,8 +77,8 @@ Legend: ✅ foundation built & tested · 🚧 partial · ⬜ planned (phase)
 | 2 | Patients | ✅ | CRUD, MRN, search |
 | 3 | Reception / Visits | ✅ | Visit + billed items, totals/balance |
 | 4 | Finance (Payments) | 🚧 | Take/refund payment, receipts; full ledger/cashflow ⬜ |
-| 5 | Queue | ✅ | Tickets, call/serve/skip + Flutter management screen |
-| 6 | TV Queue | ✅ | Public privacy-safe endpoint + standalone TV page `GET /tv/{branch}` (self-contained HTML, 4s polling) |
+| 5 | Queue | ✅ | **Two-track** D-diagnostics → auto V-doctor (no receptionist), per-track call-next, day-scoped, race-guarded |
+| 6 | TV Queue | ✅ | 2x2 board (doctor blue / diagnostics green): big called number + cabinet + specialist, next-8 tables, voice announcements |
 | 7 | Service Catalog | ✅ | Categories, priced services |
 | 8 | Director Dashboard | 🚧 | Revenue/avg-check/counts + operations & warehouse KPIs (deficit, expiring lots); conversions/LTV/forecast ⬜ |
 | 9 | Audit | ✅ | Append-only log on all mutations; viewer UI ⬜ |
