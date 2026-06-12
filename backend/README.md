@@ -71,6 +71,10 @@ starter roles (`Director`, `Reception`, `Cashier`, `Doctor`), a `MAIN` branch,
 
 `tests/test_patient_journey.py` is the executable specification of the core flow
 plus auth/RBAC guards (e.g. a `Doctor`-role user is denied `patients.create`).
+`tests/test_eye_exam.py` covers the Form 025-8 exam (upsert, validation, RBAC,
+history, `card.pdf`); `tests/test_devices.py` covers the device registry, result
+ingestion and the refraction→exam hand-off. `scripts/manual_happy_path.py`
+exercises the full clinical path against a live server.
 
 ## Configuration
 
@@ -89,9 +93,10 @@ Copy `.env.example` → `.env`. Key settings:
 ```
 backend/app/
   core/        config, database, security (JWT/bcrypt), deps (auth+RBAC),
-               repository, audit, permissions catalog, id sequences
+               repository, audit, permissions catalog, id sequences,
+               print_forms (Form 025-8 PDF), devices/ (adapter seam)
   models/      SQLAlchemy 2.0 typed ORM (users, rbac, branches, patients,
-               catalog, visits, payments, queue, audit)
+               catalog, visits, payments, queue, audit, exam, device)
   schemas/     Pydantic v2 request/response DTOs
   features/    one router (+ service logic) per feature
   api.py       aggregates routers under /api/v1
@@ -113,6 +118,8 @@ tests/
 | Finance | `GET/POST /payments`, `POST /payments/{id}/refund` |
 | Queue | `GET /queue`, `POST /queue/call-next`, serve/done/skip, `GET /queue/tv-board/{branch}` |
 | Director | `GET /dashboard/summary` |
+| EMR | `PUT/GET /visits/{id}/exam`, `GET /visits/{id}/exam/card.pdf` (Form 025-8), `GET /patients/{id}/exams` |
+| Devices | `GET/POST/PATCH /devices`, `POST/GET /devices/{id}/results`, `GET /visits/{id}/device-results`, `POST /visits/{id}/exam/apply-refraction?result_id=…` |
 
 ## Production notes (deliberately deferred)
 

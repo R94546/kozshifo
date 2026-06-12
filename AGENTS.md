@@ -23,16 +23,19 @@ tokens re-deriving the project from scratch.
 ## 1. Status at a glance (2026-06)
 
 - **Phase 0 — Backend core: ✅ done & tested.**
-- **Phase 1 — Flutter client: 🚧 in progress** (auth + dashboard + patients done).
+- **Phase 1 — Flutter client: 🚧 in progress** (auth + dashboard + patients + doctor card + devices done; Reception/Queue/TV screens remain).
+- **Phase 2 — Clinical core (EMR + Devices): ✅ done & tested** (Epic 2, `docs/prompts/02`).
 - **Everything else: ⬜ planned** — see `PLATFORM.md` §4 matrix.
 
 **Works end-to-end today:**
 `Register patient → open Visit → add billed Services → take Payment → receipt →
-auto-issue Queue ticket → call to room → TV board → Director KPIs`,
+auto-issue Queue ticket → call to room → TV board → Director KPIs`, plus the
+clinical loop `Doctor opens patient card (Form 025-8) → fills/edits eye exam →
+pulls refraction from the RMK-700 device result → prints official card.pdf`,
 on top of **JWT auth · dynamic RBAC (no hardcoded roles) · audit log on every
 mutation · multi-branch**.
 
-**Verified green:** backend `pytest` = 6 passed · Flutter `flutter test` = 4 passed
+**Verified green:** backend `pytest` = 17 passed · Flutter `flutter test` = 7 passed
 · `flutter analyze` = no issues · `flutter build web` = builds.
 
 ## 2. Repo map (where things live)
@@ -41,12 +44,14 @@ mutation · multi-branch**.
 backend/                     FastAPI service (system of record)
   app/
     core/      config, database, security (JWT/bcrypt), deps (auth+RBAC),
-               repository, audit, permissions catalog, id sequences
+               repository, audit, permissions catalog, id sequences,
+               print_forms (Form 025-8 PDF), devices/adapters (integration seam)
     models/    SQLAlchemy 2.0 ORM (user, rbac, branch, patient, catalog,
-               visit, payment, queue, audit)
+               visit, payment, queue, audit, exam, device)
     schemas/   Pydantic v2 DTOs
     features/  one router+service per feature (auth, users, roles, permissions,
-               branches, patients, catalog, visits, payments, queue, dashboard)
+               branches, patients, catalog, visits, payments, queue, dashboard,
+               exams, devices)
     api.py     aggregates routers under /api/v1
     seed.py    idempotent bootstrap (permissions, roles, branch, director, services)
     main.py    app factory, CORS, lifespan (create schema + seed)
@@ -55,7 +60,7 @@ lib/                         Flutter app
   app/         entrypoint (main.dart), theme, router (auth-guarded)
   core/        network (Dio+JWT, ApiException, Page), storage, widgets, utils
   features/<x>/{domain,data,application,presentation}   ← Clean Architecture
-               auth · dashboard · patients · splash
+               auth · dashboard · patients · doctor (card 025-8) · devices · splash
 test/          Flutter unit tests
 PLATFORM.md · README.md · CLAUDE.md
 ```
@@ -68,12 +73,12 @@ cd backend
 python -m venv .venv
 ./.venv/Scripts/python.exe -m pip install -r requirements.txt   # Windows path
 ./.venv/Scripts/python.exe -m uvicorn app.main:app --reload
-./.venv/Scripts/python.exe -m pytest -q                         # 6 passed
+./.venv/Scripts/python.exe -m pytest -q                         # 17 passed
 
 # Flutter  (separate terminal, from repo root)
 flutter pub get
 flutter run -d chrome                                           # dev: any localhost port OK
-flutter test                                                    # 4 passed
+flutter test                                                    # 7 passed
 ```
 Login: **`director@kozshifo.uz` / `Director!2026`** (auto-seeded on first backend run).
 
@@ -118,20 +123,21 @@ Login: **`director@kozshifo.uz` / `Director!2026`** (auto-seeded on first backen
 - **Backend auto-seeds on startup** (idempotent) — you don't need a manual seed step.
 - **Dev CORS allows any `localhost` port** (only when `ENVIRONMENT=development`).
 
-## 7. What to do next (two specified tracks)
+## 7. What to do next
+
+**✅ Track B (Phase 2, clinical core) is DONE** — EMR Form 025-8 exam + printable
+`card.pdf` + device registry/results/adapters with the 2 real instruments seeded
+and refractometer→exam auto-fill (built per `docs/prompts/02`, 2026-06).
+Deferred from it (note before building adjacent code): binary upload/serving of
+B-scan files (only `file_path` strings are recorded today), serial/HL7/DICOM
+transports (stubs in `core/devices/adapters.py`), IOL-power calculation.
 
 **Track A — finish the visible journey (Phase 1):**
 1. Flutter **Visits API client** + **Reception screen** (register → add services → pay → receipt + ticket).
 2. Flutter **Queue** screen + full-screen **TV board** (backend endpoints exist: `/queue`, `/queue/tv-board/{branch}`).
-3. Backend hardening: **Alembic** migrations, **Docker Compose** (+Postgres), **refresh tokens**.
-
-**Track B — clinical core (Phase 2), FULLY SPECIFIED & ready to build:**
-Ophthalmology **EMR / patient card** (the clinic's legal **MoH Form 025-8**) +
-**Medical Devices** (seeded with the clinic's two real instruments — Supore
-**RMK-700** auto-refractometer and **CAS-2000BER** A/B ultrasound; refractometer
-auto-fills the exam, A/B scan attaches to the visit).
-→ Ground-truth domain data: **`docs/DOMAIN.md`**.
-→ Ready-to-execute prompt: **`docs/prompts/02-emr-and-medical-devices.md`**.
+3. Backend hardening: **Alembic** migrations (now overdue — `create_all()` does
+   not add columns to existing tables; dev workaround is deleting `kozshifo.db`),
+   **Docker Compose** (+Postgres), **refresh tokens**.
 
 Full roadmap: `PLATFORM.md` §6.
 

@@ -48,7 +48,7 @@ multi-branch) done *properly*, so they're never retrofitted.
 | Audit written in the same transaction as the change | Trail can't drift from reality |
 | UUID primary keys | Safe to merge across branches; non-guessable |
 
-## 3. Database (implemented core — 15 tables)
+## 3. Database (implemented core — 18 tables)
 
 ```
 branches ─┬─< users >──< user_roles >──┬─ roles ──< role_permissions >── permissions
@@ -56,8 +56,10 @@ branches ─┬─< users >──< user_roles >──┬─ roles ──< role_p
           ├─< patients ─< visits ─< visit_items >── services >── service_categories
           │                 │
           │                 ├─< payments
-          │                 └─< queue_tickets
-          └─ (branch scoping on patients/visits/payments/queue)
+          │                 ├─< queue_tickets
+          │                 ├── eye_exams   (1:1, Form 025-8: refraction/IOP/structures/diagnosis)
+          │                 └─< device_results >── devices  (RMK-700, CAS-2000BER seeded)
+          └─ (branch scoping on patients/visits/payments/queue/devices)
 audit_logs  (actor, entity_type, entity_id, action, changes JSON, ip, ts)
 ```
 
@@ -77,9 +79,9 @@ Legend: ✅ foundation built & tested · 🚧 partial · ⬜ planned (phase)
 | 8 | Director Dashboard | 🚧 | Revenue/avg-check/counts; full KPI suite ⬜ |
 | 9 | Audit | ✅ | Append-only log on all mutations; viewer UI ⬜ |
 | 10 | Branches | ✅ | Multi-branch CRUD |
-| 11 | Diagnostics | ⬜ | Phase 2 — folded into the EMR eye exam |
-| 12 | Medical Devices (HL7/DICOM/serial…) | 🚧 spec | 2 real devices + integration approach captured in `docs/DOMAIN.md`; build queued (`docs/prompts/02`) |
-| 13 | Doctors / EMR | 🚧 spec | Official **Form 025-8** fields captured in `docs/DOMAIN.md`; ready-to-build prompt `docs/prompts/02` |
+| 11 | Diagnostics | ✅ | Folded into the EMR eye exam (refraction, IOP, biomicroscopy, A/B-scan note) |
+| 12 | Medical Devices (HL7/DICOM/serial…) | ✅ | Registry + results + adapter seam; 2 real devices seeded (RMK-700, CAS-2000BER); manual/file adapters live, serial/HL7/DICOM = Phase-4 stubs |
+| 13 | Doctors / EMR | ✅ | **Form 025-8** exam (1:1 visit) + printable `card.pdf`; Flutter doctor card with refractometer auto-fill; treatment plans ⬜ Phase 3 |
 | 14 | Treatment | ⬜ | Phase 3 |
 | 15 | Operations | ⬜ | Phase 3 |
 | 16 | Inventory / Warehouse | ⬜ | Phase 3 (auto write-off ties to Operations) |
@@ -97,9 +99,11 @@ Legend: ✅ foundation built & tested · 🚧 partial · ⬜ planned (phase)
   pagination envelope, RBAC-guarded. See `backend/README.md` for the surface.
 - **UI/UX 🚧:** Flutter app per the brief's stack (Riverpod · GoRouter · Freezed ·
   Dio), Feature-First + Clean Architecture. **Built:** JWT auth + auth-guarded
-  routing, Director KPI dashboard, Patients (list/search/register), and
-  permission-aware navigation. **Next:** Reception (register→bill→pay→print),
-  Doctor (patient card), and a full-screen TV board.
+  routing, Director KPI dashboard, Patients (list/search/register), **Doctor
+  patient card (Form 025-8: exam editing, history, PDF print, refractometer
+  pull, A/B-scan list)**, **Devices registry screen**, and permission-aware
+  navigation. **Next:** Reception (register→bill→pay→print) and a full-screen
+  TV board.
 
 ## 6. Roadmap (phased)
 
@@ -111,8 +115,12 @@ Legend: ✅ foundation built & tested · 🚧 partial · ⬜ planned (phase)
   (list/search/register) wired to the API — analyzes clean, compiles to web, unit-tested.
   ▫ Remaining: Reception billing/payment + Queue/TV-board screens, Alembic
   migrations, Docker Compose (+Postgres), refresh tokens.
-- **Phase 2 — Clinical:** Diagnostics, Doctor EMR / patient card, results
-  attached to visits.
+- **Phase 2 — Clinical ✅ (done):** EMR eye exam (Form 025-8, 1:1 with visit)
+  + printable `card.pdf`, medical-device registry with the 2 real instruments
+  seeded, device results attached to visits, refractometer → exam auto-fill.
+  Deferred to later phases: binary file upload/serving for B-scans (paths are
+  recorded now), serial/HL7/DICOM transports (adapter stubs in place),
+  IOL-power calculation.
 - **Phase 3 — Operations & Inventory:** Operations, Treatment plans, Warehouse
   with batches/expiry/barcodes, auto write-off on operations, Purchasing/Suppliers.
 - **Phase 4 — Integrations:** Medical device gateway (REST/TCP/serial/HL7/DICOM),
@@ -132,8 +140,9 @@ Legend: ✅ foundation built & tested · 🚧 partial · ⬜ planned (phase)
 
 ## 8. Testing & Deployment
 
-- **Testing:** pytest end-to-end Patient Journey + RBAC denial (`6 passed`).
-  Expand per module; target the executable-spec style already established.
+- **Testing:** pytest end-to-end Patient Journey + EMR exam (upsert/validation/
+  RBAC/history/PDF) + devices (seed/results/apply-refraction/RBAC) — `17 passed`;
+  Flutter `7 passed`. Target the executable-spec style already established.
 - **Deployment:** app is 12-factor/env-driven. Phase 1 adds Dockerfile +
   docker-compose (api + Postgres), Alembic migrations, and CI. Until then it runs
   with `uvicorn app.main:app` on SQLite.

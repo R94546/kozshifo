@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Device {
 
- String get id; String get name; String get deviceType; String? get model; String? get manufacturer; String get serialNo; String? get assetCode; String get connectionType; String? get branchId; String get status; String? get manufactureDate; Map<String, dynamic>? get settings; String? get euRep; String? get address; int? get usefulLifeYears;
+ String get id; String get name; String get deviceType; String? get model; String? get manufacturer; String get serialNo; String? get assetCode; String get connectionType; String? get branchId; String? get branchName; String get status; String? get manufactureDate; Map<String, dynamic>? get settings; String? get euRep; String? get address; int? get usefulLifeYears;
 /// Create a copy of Device
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $DeviceCopyWith<Device> get copyWith => _$DeviceCopyWithImpl<Device>(this as Dev
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Device&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.deviceType, deviceType) || other.deviceType == deviceType)&&(identical(other.model, model) || other.model == model)&&(identical(other.manufacturer, manufacturer) || other.manufacturer == manufacturer)&&(identical(other.serialNo, serialNo) || other.serialNo == serialNo)&&(identical(other.assetCode, assetCode) || other.assetCode == assetCode)&&(identical(other.connectionType, connectionType) || other.connectionType == connectionType)&&(identical(other.branchId, branchId) || other.branchId == branchId)&&(identical(other.status, status) || other.status == status)&&(identical(other.manufactureDate, manufactureDate) || other.manufactureDate == manufactureDate)&&const DeepCollectionEquality().equals(other.settings, settings)&&(identical(other.euRep, euRep) || other.euRep == euRep)&&(identical(other.address, address) || other.address == address)&&(identical(other.usefulLifeYears, usefulLifeYears) || other.usefulLifeYears == usefulLifeYears));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Device&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.deviceType, deviceType) || other.deviceType == deviceType)&&(identical(other.model, model) || other.model == model)&&(identical(other.manufacturer, manufacturer) || other.manufacturer == manufacturer)&&(identical(other.serialNo, serialNo) || other.serialNo == serialNo)&&(identical(other.assetCode, assetCode) || other.assetCode == assetCode)&&(identical(other.connectionType, connectionType) || other.connectionType == connectionType)&&(identical(other.branchId, branchId) || other.branchId == branchId)&&(identical(other.branchName, branchName) || other.branchName == branchName)&&(identical(other.status, status) || other.status == status)&&(identical(other.manufactureDate, manufactureDate) || other.manufactureDate == manufactureDate)&&const DeepCollectionEquality().equals(other.settings, settings)&&(identical(other.euRep, euRep) || other.euRep == euRep)&&(identical(other.address, address) || other.address == address)&&(identical(other.usefulLifeYears, usefulLifeYears) || other.usefulLifeYears == usefulLifeYears));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,deviceType,model,manufacturer,serialNo,assetCode,connectionType,branchId,status,manufactureDate,const DeepCollectionEquality().hash(settings),euRep,address,usefulLifeYears);
+int get hashCode => Object.hash(runtimeType,id,name,deviceType,model,manufacturer,serialNo,assetCode,connectionType,branchId,branchName,status,manufactureDate,const DeepCollectionEquality().hash(settings),euRep,address,usefulLifeYears);
 
 @override
 String toString() {
-  return 'Device(id: $id, name: $name, deviceType: $deviceType, model: $model, manufacturer: $manufacturer, serialNo: $serialNo, assetCode: $assetCode, connectionType: $connectionType, branchId: $branchId, status: $status, manufactureDate: $manufactureDate, settings: $settings, euRep: $euRep, address: $address, usefulLifeYears: $usefulLifeYears)';
+  return 'Device(id: $id, name: $name, deviceType: $deviceType, model: $model, manufacturer: $manufacturer, serialNo: $serialNo, assetCode: $assetCode, connectionType: $connectionType, branchId: $branchId, branchName: $branchName, status: $status, manufactureDate: $manufactureDate, settings: $settings, euRep: $euRep, address: $address, usefulLifeYears: $usefulLifeYears)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $DeviceCopyWith<$Res>  {
   factory $DeviceCopyWith(Device value, $Res Function(Device) _then) = _$DeviceCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String deviceType, String? model, String? manufacturer, String serialNo, String? assetCode, String connectionType, String? branchId, String status, String? manufactureDate, Map<String, dynamic>? settings, String? euRep, String? address, int? usefulLifeYears
+ String id, String name, String deviceType, String? model, String? manufacturer, String serialNo, String? assetCode, String connectionType, String? branchId, String? branchName, String status, String? manufactureDate, Map<String, dynamic>? settings, String? euRep, String? address, int? usefulLifeYears
 });
 
 
@@ -65,7 +65,7 @@ class _$DeviceCopyWithImpl<$Res>
 
 /// Create a copy of Device
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? deviceType = null,Object? model = freezed,Object? manufacturer = freezed,Object? serialNo = null,Object? assetCode = freezed,Object? connectionType = null,Object? branchId = freezed,Object? status = null,Object? manufactureDate = freezed,Object? settings = freezed,Object? euRep = freezed,Object? address = freezed,Object? usefulLifeYears = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? deviceType = null,Object? model = freezed,Object? manufacturer = freezed,Object? serialNo = null,Object? assetCode = freezed,Object? connectionType = null,Object? branchId = freezed,Object? branchName = freezed,Object? status = null,Object? manufactureDate = freezed,Object? settings = freezed,Object? euRep = freezed,Object? address = freezed,Object? usefulLifeYears = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -76,6 +76,7 @@ as String?,serialNo: null == serialNo ? _self.serialNo : serialNo // ignore: cas
 as String,assetCode: freezed == assetCode ? _self.assetCode : assetCode // ignore: cast_nullable_to_non_nullable
 as String?,connectionType: null == connectionType ? _self.connectionType : connectionType // ignore: cast_nullable_to_non_nullable
 as String,branchId: freezed == branchId ? _self.branchId : branchId // ignore: cast_nullable_to_non_nullable
+as String?,branchName: freezed == branchName ? _self.branchName : branchName // ignore: cast_nullable_to_non_nullable
 as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,manufactureDate: freezed == manufactureDate ? _self.manufactureDate : manufactureDate // ignore: cast_nullable_to_non_nullable
 as String?,settings: freezed == settings ? _self.settings : settings // ignore: cast_nullable_to_non_nullable
@@ -167,10 +168,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String deviceType,  String? model,  String? manufacturer,  String serialNo,  String? assetCode,  String connectionType,  String? branchId,  String status,  String? manufactureDate,  Map<String, dynamic>? settings,  String? euRep,  String? address,  int? usefulLifeYears)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String deviceType,  String? model,  String? manufacturer,  String serialNo,  String? assetCode,  String connectionType,  String? branchId,  String? branchName,  String status,  String? manufactureDate,  Map<String, dynamic>? settings,  String? euRep,  String? address,  int? usefulLifeYears)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Device() when $default != null:
-return $default(_that.id,_that.name,_that.deviceType,_that.model,_that.manufacturer,_that.serialNo,_that.assetCode,_that.connectionType,_that.branchId,_that.status,_that.manufactureDate,_that.settings,_that.euRep,_that.address,_that.usefulLifeYears);case _:
+return $default(_that.id,_that.name,_that.deviceType,_that.model,_that.manufacturer,_that.serialNo,_that.assetCode,_that.connectionType,_that.branchId,_that.branchName,_that.status,_that.manufactureDate,_that.settings,_that.euRep,_that.address,_that.usefulLifeYears);case _:
   return orElse();
 
 }
@@ -188,10 +189,10 @@ return $default(_that.id,_that.name,_that.deviceType,_that.model,_that.manufactu
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String deviceType,  String? model,  String? manufacturer,  String serialNo,  String? assetCode,  String connectionType,  String? branchId,  String status,  String? manufactureDate,  Map<String, dynamic>? settings,  String? euRep,  String? address,  int? usefulLifeYears)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String deviceType,  String? model,  String? manufacturer,  String serialNo,  String? assetCode,  String connectionType,  String? branchId,  String? branchName,  String status,  String? manufactureDate,  Map<String, dynamic>? settings,  String? euRep,  String? address,  int? usefulLifeYears)  $default,) {final _that = this;
 switch (_that) {
 case _Device():
-return $default(_that.id,_that.name,_that.deviceType,_that.model,_that.manufacturer,_that.serialNo,_that.assetCode,_that.connectionType,_that.branchId,_that.status,_that.manufactureDate,_that.settings,_that.euRep,_that.address,_that.usefulLifeYears);case _:
+return $default(_that.id,_that.name,_that.deviceType,_that.model,_that.manufacturer,_that.serialNo,_that.assetCode,_that.connectionType,_that.branchId,_that.branchName,_that.status,_that.manufactureDate,_that.settings,_that.euRep,_that.address,_that.usefulLifeYears);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -208,10 +209,10 @@ return $default(_that.id,_that.name,_that.deviceType,_that.model,_that.manufactu
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String deviceType,  String? model,  String? manufacturer,  String serialNo,  String? assetCode,  String connectionType,  String? branchId,  String status,  String? manufactureDate,  Map<String, dynamic>? settings,  String? euRep,  String? address,  int? usefulLifeYears)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String deviceType,  String? model,  String? manufacturer,  String serialNo,  String? assetCode,  String connectionType,  String? branchId,  String? branchName,  String status,  String? manufactureDate,  Map<String, dynamic>? settings,  String? euRep,  String? address,  int? usefulLifeYears)?  $default,) {final _that = this;
 switch (_that) {
 case _Device() when $default != null:
-return $default(_that.id,_that.name,_that.deviceType,_that.model,_that.manufacturer,_that.serialNo,_that.assetCode,_that.connectionType,_that.branchId,_that.status,_that.manufactureDate,_that.settings,_that.euRep,_that.address,_that.usefulLifeYears);case _:
+return $default(_that.id,_that.name,_that.deviceType,_that.model,_that.manufacturer,_that.serialNo,_that.assetCode,_that.connectionType,_that.branchId,_that.branchName,_that.status,_that.manufactureDate,_that.settings,_that.euRep,_that.address,_that.usefulLifeYears);case _:
   return null;
 
 }
@@ -223,7 +224,7 @@ return $default(_that.id,_that.name,_that.deviceType,_that.model,_that.manufactu
 @JsonSerializable()
 
 class _Device extends Device {
-  const _Device({required this.id, required this.name, required this.deviceType, this.model, this.manufacturer, required this.serialNo, this.assetCode, required this.connectionType, this.branchId, required this.status, this.manufactureDate, final  Map<String, dynamic>? settings, this.euRep, this.address, this.usefulLifeYears}): _settings = settings,super._();
+  const _Device({required this.id, required this.name, required this.deviceType, this.model, this.manufacturer, required this.serialNo, this.assetCode, required this.connectionType, this.branchId, this.branchName, required this.status, this.manufactureDate, final  Map<String, dynamic>? settings, this.euRep, this.address, this.usefulLifeYears}): _settings = settings,super._();
   factory _Device.fromJson(Map<String, dynamic> json) => _$DeviceFromJson(json);
 
 @override final  String id;
@@ -235,6 +236,7 @@ class _Device extends Device {
 @override final  String? assetCode;
 @override final  String connectionType;
 @override final  String? branchId;
+@override final  String? branchName;
 @override final  String status;
 @override final  String? manufactureDate;
  final  Map<String, dynamic>? _settings;
@@ -263,16 +265,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Device&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.deviceType, deviceType) || other.deviceType == deviceType)&&(identical(other.model, model) || other.model == model)&&(identical(other.manufacturer, manufacturer) || other.manufacturer == manufacturer)&&(identical(other.serialNo, serialNo) || other.serialNo == serialNo)&&(identical(other.assetCode, assetCode) || other.assetCode == assetCode)&&(identical(other.connectionType, connectionType) || other.connectionType == connectionType)&&(identical(other.branchId, branchId) || other.branchId == branchId)&&(identical(other.status, status) || other.status == status)&&(identical(other.manufactureDate, manufactureDate) || other.manufactureDate == manufactureDate)&&const DeepCollectionEquality().equals(other._settings, _settings)&&(identical(other.euRep, euRep) || other.euRep == euRep)&&(identical(other.address, address) || other.address == address)&&(identical(other.usefulLifeYears, usefulLifeYears) || other.usefulLifeYears == usefulLifeYears));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Device&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.deviceType, deviceType) || other.deviceType == deviceType)&&(identical(other.model, model) || other.model == model)&&(identical(other.manufacturer, manufacturer) || other.manufacturer == manufacturer)&&(identical(other.serialNo, serialNo) || other.serialNo == serialNo)&&(identical(other.assetCode, assetCode) || other.assetCode == assetCode)&&(identical(other.connectionType, connectionType) || other.connectionType == connectionType)&&(identical(other.branchId, branchId) || other.branchId == branchId)&&(identical(other.branchName, branchName) || other.branchName == branchName)&&(identical(other.status, status) || other.status == status)&&(identical(other.manufactureDate, manufactureDate) || other.manufactureDate == manufactureDate)&&const DeepCollectionEquality().equals(other._settings, _settings)&&(identical(other.euRep, euRep) || other.euRep == euRep)&&(identical(other.address, address) || other.address == address)&&(identical(other.usefulLifeYears, usefulLifeYears) || other.usefulLifeYears == usefulLifeYears));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,deviceType,model,manufacturer,serialNo,assetCode,connectionType,branchId,status,manufactureDate,const DeepCollectionEquality().hash(_settings),euRep,address,usefulLifeYears);
+int get hashCode => Object.hash(runtimeType,id,name,deviceType,model,manufacturer,serialNo,assetCode,connectionType,branchId,branchName,status,manufactureDate,const DeepCollectionEquality().hash(_settings),euRep,address,usefulLifeYears);
 
 @override
 String toString() {
-  return 'Device(id: $id, name: $name, deviceType: $deviceType, model: $model, manufacturer: $manufacturer, serialNo: $serialNo, assetCode: $assetCode, connectionType: $connectionType, branchId: $branchId, status: $status, manufactureDate: $manufactureDate, settings: $settings, euRep: $euRep, address: $address, usefulLifeYears: $usefulLifeYears)';
+  return 'Device(id: $id, name: $name, deviceType: $deviceType, model: $model, manufacturer: $manufacturer, serialNo: $serialNo, assetCode: $assetCode, connectionType: $connectionType, branchId: $branchId, branchName: $branchName, status: $status, manufactureDate: $manufactureDate, settings: $settings, euRep: $euRep, address: $address, usefulLifeYears: $usefulLifeYears)';
 }
 
 
@@ -283,7 +285,7 @@ abstract mixin class _$DeviceCopyWith<$Res> implements $DeviceCopyWith<$Res> {
   factory _$DeviceCopyWith(_Device value, $Res Function(_Device) _then) = __$DeviceCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String deviceType, String? model, String? manufacturer, String serialNo, String? assetCode, String connectionType, String? branchId, String status, String? manufactureDate, Map<String, dynamic>? settings, String? euRep, String? address, int? usefulLifeYears
+ String id, String name, String deviceType, String? model, String? manufacturer, String serialNo, String? assetCode, String connectionType, String? branchId, String? branchName, String status, String? manufactureDate, Map<String, dynamic>? settings, String? euRep, String? address, int? usefulLifeYears
 });
 
 
@@ -300,7 +302,7 @@ class __$DeviceCopyWithImpl<$Res>
 
 /// Create a copy of Device
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? deviceType = null,Object? model = freezed,Object? manufacturer = freezed,Object? serialNo = null,Object? assetCode = freezed,Object? connectionType = null,Object? branchId = freezed,Object? status = null,Object? manufactureDate = freezed,Object? settings = freezed,Object? euRep = freezed,Object? address = freezed,Object? usefulLifeYears = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? deviceType = null,Object? model = freezed,Object? manufacturer = freezed,Object? serialNo = null,Object? assetCode = freezed,Object? connectionType = null,Object? branchId = freezed,Object? branchName = freezed,Object? status = null,Object? manufactureDate = freezed,Object? settings = freezed,Object? euRep = freezed,Object? address = freezed,Object? usefulLifeYears = freezed,}) {
   return _then(_Device(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -311,6 +313,7 @@ as String?,serialNo: null == serialNo ? _self.serialNo : serialNo // ignore: cas
 as String,assetCode: freezed == assetCode ? _self.assetCode : assetCode // ignore: cast_nullable_to_non_nullable
 as String?,connectionType: null == connectionType ? _self.connectionType : connectionType // ignore: cast_nullable_to_non_nullable
 as String,branchId: freezed == branchId ? _self.branchId : branchId // ignore: cast_nullable_to_non_nullable
+as String?,branchName: freezed == branchName ? _self.branchName : branchName // ignore: cast_nullable_to_non_nullable
 as String?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,manufactureDate: freezed == manufactureDate ? _self.manufactureDate : manufactureDate // ignore: cast_nullable_to_non_nullable
 as String?,settings: freezed == settings ? _self._settings : settings // ignore: cast_nullable_to_non_nullable

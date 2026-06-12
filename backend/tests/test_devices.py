@@ -32,6 +32,7 @@ def test_two_real_devices_seeded(client, auth):
     assert rmk["model"] == "RMK-700"
     assert rmk["device_type"] == "refractometer"
     assert rmk["asset_code"] == "CP-RMK-700A00749"
+    assert rmk["branch_name"]  # seeded into the main branch
 
     cas = _device_by_serial(client, auth, "53789467")
     assert cas["model"] == "CAS-2000BER"

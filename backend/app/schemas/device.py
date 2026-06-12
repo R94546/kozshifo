@@ -59,6 +59,7 @@ class DeviceOut(BaseModel):
     asset_code: str | None
     connection_type: str
     branch_id: UUID | None
+    branch_name: str | None
     status: str
     manufacture_date: date | None
     settings: dict | None

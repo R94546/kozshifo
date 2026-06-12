@@ -18,6 +18,7 @@ abstract class Device with _$Device {
     String? assetCode,
     required String connectionType,
     String? branchId,
+    String? branchName,
     required String status,
     String? manufactureDate,
     Map<String, dynamic>? settings,

@@ -40,7 +40,12 @@ class Device(UUIDPKMixin, TimestampMixin, Base):
     address: Mapped[str | None] = mapped_column(String(512), nullable=True)
     useful_life_years: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
+    branch: Mapped["Branch | None"] = relationship(lazy="joined")  # noqa: F821
     results: Mapped[list["DeviceResult"]] = relationship(back_populates="device")
+
+    @property
+    def branch_name(self) -> str | None:
+        return self.branch.name if self.branch else None
 
 
 class DeviceResult(UUIDPKMixin, TimestampMixin, Base):

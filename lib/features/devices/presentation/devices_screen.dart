@@ -65,6 +65,7 @@ class _DeviceTile extends ConsumerWidget {
           device.typeLabel,
           'S/N ${device.serialNo}',
           if (device.assetCode != null) 'инв. ${device.assetCode}',
+          if (device.branchName != null) device.branchName!,
           device.connectionType,
         ].join('  ·  ')),
         trailing: Chip(
