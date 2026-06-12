@@ -16,6 +16,10 @@ _DashboardSummary _$DashboardSummaryFromJson(Map<String, dynamic> json) =>
       newPatientsToday: (json['new_patients_today'] as num).toInt(),
       patientsTotal: (json['patients_total'] as num).toInt(),
       queueWaiting: (json['queue_waiting'] as num).toInt(),
+      operationsToday: (json['operations_today'] as num?)?.toInt() ?? 0,
+      operationsMonth: (json['operations_month'] as num?)?.toInt() ?? 0,
+      lowStockCount: (json['low_stock_count'] as num?)?.toInt() ?? 0,
+      expiringSoonCount: (json['expiring_soon_count'] as num?)?.toInt() ?? 0,
     );
 
 Map<String, dynamic> _$DashboardSummaryToJson(_DashboardSummary instance) =>
@@ -28,4 +32,8 @@ Map<String, dynamic> _$DashboardSummaryToJson(_DashboardSummary instance) =>
       'new_patients_today': instance.newPatientsToday,
       'patients_total': instance.patientsTotal,
       'queue_waiting': instance.queueWaiting,
+      'operations_today': instance.operationsToday,
+      'operations_month': instance.operationsMonth,
+      'low_stock_count': instance.lowStockCount,
+      'expiring_soon_count': instance.expiringSoonCount,
     };

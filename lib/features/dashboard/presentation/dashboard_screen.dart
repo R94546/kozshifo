@@ -63,6 +63,14 @@ class _KpiGrid extends StatelessWidget {
           icon: Icons.groups_outlined),
       _KpiCard(label: 'В очереди', value: formatInt(data.queueWaiting),
           icon: Icons.queue_outlined),
+      _KpiCard(label: 'Операций сегодня', value: formatInt(data.operationsToday),
+          icon: Icons.medical_services_outlined),
+      _KpiCard(label: 'Операций за месяц', value: formatInt(data.operationsMonth),
+          icon: Icons.event_repeat_outlined),
+      _KpiCard(label: 'Дефицит склада', value: formatInt(data.lowStockCount),
+          icon: Icons.warning_amber_outlined, accent: data.lowStockCount > 0),
+      _KpiCard(label: 'Партии: срок ≤30 дней', value: formatInt(data.expiringSoonCount),
+          icon: Icons.hourglass_bottom_outlined),
     ];
 
     return LayoutBuilder(

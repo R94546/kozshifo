@@ -1,23 +1,26 @@
 """Director dashboard — headline KPIs over live data.
 
 This is a first, honest slice of the (large) KPI spec: today's revenue, average
-check, patient/visit counts and live queue load. The remaining KPIs (margins,
+check, patient/visit counts, live queue load, performed-operation counters and
+warehouse alerts (low stock / expiring batches). The remaining KPIs (margins,
 conversions, forecasts, per-doctor revenue …) are scheduled in later phases once
 the Diagnostics / Treatment / Inventory modules feed the data they require.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import require_permission
+from app.models.inventory import Product, StockBatch
+from app.models.operation import Operation
 from app.models.patient import Patient
 from app.models.payment import Payment
 from app.models.queue import QueueTicket
@@ -35,6 +38,10 @@ class DashboardSummary(BaseModel):
     new_patients_today: int
     patients_total: int
     queue_waiting: int
+    operations_today: int
+    operations_month: int
+    low_stock_count: int
+    expiring_soon_count: int
 
 
 def _day_start() -> datetime:
@@ -51,6 +58,14 @@ def _sum_payments(db: Session, since: datetime) -> Decimal:
         .where(Payment.status == "completed", Payment.created_at >= since)
     ).scalar_one()
     return Decimal(val)
+
+
+def _count_operations_done(db: Session, since: datetime) -> int:
+    """Performed operations since `since` (same UTC day/month boundaries as revenue)."""
+    return db.execute(
+        select(func.count()).select_from(Operation)
+        .where(Operation.status == "done", Operation.performed_at >= since)
+    ).scalar_one()
 
 
 @router.get("/summary", response_model=DashboardSummary,
@@ -74,6 +89,37 @@ def summary(db: Annotated[Session, Depends(get_db)]) -> DashboardSummary:
         select(func.count()).select_from(QueueTicket).where(QueueTicket.status == "waiting")
     ).scalar_one()
 
+    # ── Warehouse alerts (system-wide, matching the rest of the summary's scope) ──
+    # "Usable" mirrors the FEFO engine's predicate in app.core.stock._usable_filter:
+    # positive remainder AND not expired — expired lots must never mask a shortage.
+    today = day.date()
+    usable_qty = (
+        select(StockBatch.product_id, func.sum(StockBatch.quantity).label("qty"))
+        .where(
+            StockBatch.quantity > 0,
+            or_(StockBatch.expiry_date.is_(None), StockBatch.expiry_date >= today),
+        )
+        .group_by(StockBatch.product_id)
+        .subquery()
+    )
+    low_stock_count = db.execute(
+        select(func.count()).select_from(Product)
+        .outerjoin(usable_qty, usable_qty.c.product_id == Product.id)
+        .where(
+            Product.is_active.is_(True),
+            func.coalesce(usable_qty.c.qty, 0) <= Product.min_stock,
+        )
+    ).scalar_one()
+    expiring_soon_count = db.execute(
+        select(func.count()).select_from(StockBatch)
+        .where(
+            StockBatch.quantity > 0,
+            StockBatch.expiry_date.is_not(None),
+            StockBatch.expiry_date >= today,
+            StockBatch.expiry_date <= today + timedelta(days=30),
+        )
+    ).scalar_one()
+
     avg_check = (revenue_today / payments_today) if payments_today else Decimal("0.00")
 
     return DashboardSummary(
@@ -85,4 +131,8 @@ def summary(db: Annotated[Session, Depends(get_db)]) -> DashboardSummary:
         new_patients_today=new_patients_today,
         patients_total=patients_total,
         queue_waiting=queue_waiting,
+        operations_today=_count_operations_done(db, day),
+        operations_month=_count_operations_done(db, month),
+        low_stock_count=low_stock_count,
+        expiring_soon_count=expiring_soon_count,
     )
