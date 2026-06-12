@@ -27,6 +27,8 @@ const _allDestinations = <_Destination>[
       permission: 'devices.read'),
   _Destination(Icons.inventory_2_outlined, Icons.inventory_2, 'Склад',
       '/inventory', permission: 'inventory.read'),
+  _Destination(Icons.settings_outlined, Icons.settings, 'Администрирование',
+      '/admin', permission: 'users.read'),
 ];
 
 /// App chrome: a navigation rail + the routed page body.

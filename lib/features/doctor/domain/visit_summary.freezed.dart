@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$VisitSummary {
 
- String get id; String get visitNo; String get status; String get openedAt; String? get branchId;
+ String get id; String get visitNo; String get status; String get flowStatus; String get openedAt; String? get branchId;
 /// Create a copy of VisitSummary
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $VisitSummaryCopyWith<VisitSummary> get copyWith => _$VisitSummaryCopyWithImpl<V
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is VisitSummary&&(identical(other.id, id) || other.id == id)&&(identical(other.visitNo, visitNo) || other.visitNo == visitNo)&&(identical(other.status, status) || other.status == status)&&(identical(other.openedAt, openedAt) || other.openedAt == openedAt)&&(identical(other.branchId, branchId) || other.branchId == branchId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is VisitSummary&&(identical(other.id, id) || other.id == id)&&(identical(other.visitNo, visitNo) || other.visitNo == visitNo)&&(identical(other.status, status) || other.status == status)&&(identical(other.flowStatus, flowStatus) || other.flowStatus == flowStatus)&&(identical(other.openedAt, openedAt) || other.openedAt == openedAt)&&(identical(other.branchId, branchId) || other.branchId == branchId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,visitNo,status,openedAt,branchId);
+int get hashCode => Object.hash(runtimeType,id,visitNo,status,flowStatus,openedAt,branchId);
 
 @override
 String toString() {
-  return 'VisitSummary(id: $id, visitNo: $visitNo, status: $status, openedAt: $openedAt, branchId: $branchId)';
+  return 'VisitSummary(id: $id, visitNo: $visitNo, status: $status, flowStatus: $flowStatus, openedAt: $openedAt, branchId: $branchId)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $VisitSummaryCopyWith<$Res>  {
   factory $VisitSummaryCopyWith(VisitSummary value, $Res Function(VisitSummary) _then) = _$VisitSummaryCopyWithImpl;
 @useResult
 $Res call({
- String id, String visitNo, String status, String openedAt, String? branchId
+ String id, String visitNo, String status, String flowStatus, String openedAt, String? branchId
 });
 
 
@@ -65,11 +65,12 @@ class _$VisitSummaryCopyWithImpl<$Res>
 
 /// Create a copy of VisitSummary
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? visitNo = null,Object? status = null,Object? openedAt = null,Object? branchId = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? visitNo = null,Object? status = null,Object? flowStatus = null,Object? openedAt = null,Object? branchId = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,visitNo: null == visitNo ? _self.visitNo : visitNo // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String,flowStatus: null == flowStatus ? _self.flowStatus : flowStatus // ignore: cast_nullable_to_non_nullable
 as String,openedAt: null == openedAt ? _self.openedAt : openedAt // ignore: cast_nullable_to_non_nullable
 as String,branchId: freezed == branchId ? _self.branchId : branchId // ignore: cast_nullable_to_non_nullable
 as String?,
@@ -157,10 +158,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String visitNo,  String status,  String openedAt,  String? branchId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String visitNo,  String status,  String flowStatus,  String openedAt,  String? branchId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _VisitSummary() when $default != null:
-return $default(_that.id,_that.visitNo,_that.status,_that.openedAt,_that.branchId);case _:
+return $default(_that.id,_that.visitNo,_that.status,_that.flowStatus,_that.openedAt,_that.branchId);case _:
   return orElse();
 
 }
@@ -178,10 +179,10 @@ return $default(_that.id,_that.visitNo,_that.status,_that.openedAt,_that.branchI
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String visitNo,  String status,  String openedAt,  String? branchId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String visitNo,  String status,  String flowStatus,  String openedAt,  String? branchId)  $default,) {final _that = this;
 switch (_that) {
 case _VisitSummary():
-return $default(_that.id,_that.visitNo,_that.status,_that.openedAt,_that.branchId);case _:
+return $default(_that.id,_that.visitNo,_that.status,_that.flowStatus,_that.openedAt,_that.branchId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -198,10 +199,10 @@ return $default(_that.id,_that.visitNo,_that.status,_that.openedAt,_that.branchI
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String visitNo,  String status,  String openedAt,  String? branchId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String visitNo,  String status,  String flowStatus,  String openedAt,  String? branchId)?  $default,) {final _that = this;
 switch (_that) {
 case _VisitSummary() when $default != null:
-return $default(_that.id,_that.visitNo,_that.status,_that.openedAt,_that.branchId);case _:
+return $default(_that.id,_that.visitNo,_that.status,_that.flowStatus,_that.openedAt,_that.branchId);case _:
   return null;
 
 }
@@ -213,12 +214,13 @@ return $default(_that.id,_that.visitNo,_that.status,_that.openedAt,_that.branchI
 @JsonSerializable()
 
 class _VisitSummary extends VisitSummary {
-  const _VisitSummary({required this.id, required this.visitNo, required this.status, required this.openedAt, this.branchId}): super._();
+  const _VisitSummary({required this.id, required this.visitNo, required this.status, this.flowStatus = 'registered', required this.openedAt, this.branchId}): super._();
   factory _VisitSummary.fromJson(Map<String, dynamic> json) => _$VisitSummaryFromJson(json);
 
 @override final  String id;
 @override final  String visitNo;
 @override final  String status;
+@override@JsonKey() final  String flowStatus;
 @override final  String openedAt;
 @override final  String? branchId;
 
@@ -235,16 +237,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _VisitSummary&&(identical(other.id, id) || other.id == id)&&(identical(other.visitNo, visitNo) || other.visitNo == visitNo)&&(identical(other.status, status) || other.status == status)&&(identical(other.openedAt, openedAt) || other.openedAt == openedAt)&&(identical(other.branchId, branchId) || other.branchId == branchId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _VisitSummary&&(identical(other.id, id) || other.id == id)&&(identical(other.visitNo, visitNo) || other.visitNo == visitNo)&&(identical(other.status, status) || other.status == status)&&(identical(other.flowStatus, flowStatus) || other.flowStatus == flowStatus)&&(identical(other.openedAt, openedAt) || other.openedAt == openedAt)&&(identical(other.branchId, branchId) || other.branchId == branchId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,visitNo,status,openedAt,branchId);
+int get hashCode => Object.hash(runtimeType,id,visitNo,status,flowStatus,openedAt,branchId);
 
 @override
 String toString() {
-  return 'VisitSummary(id: $id, visitNo: $visitNo, status: $status, openedAt: $openedAt, branchId: $branchId)';
+  return 'VisitSummary(id: $id, visitNo: $visitNo, status: $status, flowStatus: $flowStatus, openedAt: $openedAt, branchId: $branchId)';
 }
 
 
@@ -255,7 +257,7 @@ abstract mixin class _$VisitSummaryCopyWith<$Res> implements $VisitSummaryCopyWi
   factory _$VisitSummaryCopyWith(_VisitSummary value, $Res Function(_VisitSummary) _then) = __$VisitSummaryCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String visitNo, String status, String openedAt, String? branchId
+ String id, String visitNo, String status, String flowStatus, String openedAt, String? branchId
 });
 
 
@@ -272,11 +274,12 @@ class __$VisitSummaryCopyWithImpl<$Res>
 
 /// Create a copy of VisitSummary
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? visitNo = null,Object? status = null,Object? openedAt = null,Object? branchId = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? visitNo = null,Object? status = null,Object? flowStatus = null,Object? openedAt = null,Object? branchId = freezed,}) {
   return _then(_VisitSummary(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,visitNo: null == visitNo ? _self.visitNo : visitNo // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String,flowStatus: null == flowStatus ? _self.flowStatus : flowStatus // ignore: cast_nullable_to_non_nullable
 as String,openedAt: null == openedAt ? _self.openedAt : openedAt // ignore: cast_nullable_to_non_nullable
 as String,branchId: freezed == branchId ? _self.branchId : branchId // ignore: cast_nullable_to_non_nullable
 as String?,

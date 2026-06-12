@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ReceptionVisit {
 
- String get id; String get visitNo; String get status; String get totalAmount; String get paidAmount; String get balance; List<ReceptionVisitItem> get items;
+ String get id; String get visitNo; String get status; String get flowStatus; String get totalAmount; String get paidAmount; String get balance; List<ReceptionVisitItem> get items;
 /// Create a copy of ReceptionVisit
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $ReceptionVisitCopyWith<ReceptionVisit> get copyWith => _$ReceptionVisitCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReceptionVisit&&(identical(other.id, id) || other.id == id)&&(identical(other.visitNo, visitNo) || other.visitNo == visitNo)&&(identical(other.status, status) || other.status == status)&&(identical(other.totalAmount, totalAmount) || other.totalAmount == totalAmount)&&(identical(other.paidAmount, paidAmount) || other.paidAmount == paidAmount)&&(identical(other.balance, balance) || other.balance == balance)&&const DeepCollectionEquality().equals(other.items, items));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReceptionVisit&&(identical(other.id, id) || other.id == id)&&(identical(other.visitNo, visitNo) || other.visitNo == visitNo)&&(identical(other.status, status) || other.status == status)&&(identical(other.flowStatus, flowStatus) || other.flowStatus == flowStatus)&&(identical(other.totalAmount, totalAmount) || other.totalAmount == totalAmount)&&(identical(other.paidAmount, paidAmount) || other.paidAmount == paidAmount)&&(identical(other.balance, balance) || other.balance == balance)&&const DeepCollectionEquality().equals(other.items, items));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,visitNo,status,totalAmount,paidAmount,balance,const DeepCollectionEquality().hash(items));
+int get hashCode => Object.hash(runtimeType,id,visitNo,status,flowStatus,totalAmount,paidAmount,balance,const DeepCollectionEquality().hash(items));
 
 @override
 String toString() {
-  return 'ReceptionVisit(id: $id, visitNo: $visitNo, status: $status, totalAmount: $totalAmount, paidAmount: $paidAmount, balance: $balance, items: $items)';
+  return 'ReceptionVisit(id: $id, visitNo: $visitNo, status: $status, flowStatus: $flowStatus, totalAmount: $totalAmount, paidAmount: $paidAmount, balance: $balance, items: $items)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $ReceptionVisitCopyWith<$Res>  {
   factory $ReceptionVisitCopyWith(ReceptionVisit value, $Res Function(ReceptionVisit) _then) = _$ReceptionVisitCopyWithImpl;
 @useResult
 $Res call({
- String id, String visitNo, String status, String totalAmount, String paidAmount, String balance, List<ReceptionVisitItem> items
+ String id, String visitNo, String status, String flowStatus, String totalAmount, String paidAmount, String balance, List<ReceptionVisitItem> items
 });
 
 
@@ -65,11 +65,12 @@ class _$ReceptionVisitCopyWithImpl<$Res>
 
 /// Create a copy of ReceptionVisit
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? visitNo = null,Object? status = null,Object? totalAmount = null,Object? paidAmount = null,Object? balance = null,Object? items = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? visitNo = null,Object? status = null,Object? flowStatus = null,Object? totalAmount = null,Object? paidAmount = null,Object? balance = null,Object? items = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,visitNo: null == visitNo ? _self.visitNo : visitNo // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String,flowStatus: null == flowStatus ? _self.flowStatus : flowStatus // ignore: cast_nullable_to_non_nullable
 as String,totalAmount: null == totalAmount ? _self.totalAmount : totalAmount // ignore: cast_nullable_to_non_nullable
 as String,paidAmount: null == paidAmount ? _self.paidAmount : paidAmount // ignore: cast_nullable_to_non_nullable
 as String,balance: null == balance ? _self.balance : balance // ignore: cast_nullable_to_non_nullable
@@ -159,10 +160,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String visitNo,  String status,  String totalAmount,  String paidAmount,  String balance,  List<ReceptionVisitItem> items)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String visitNo,  String status,  String flowStatus,  String totalAmount,  String paidAmount,  String balance,  List<ReceptionVisitItem> items)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReceptionVisit() when $default != null:
-return $default(_that.id,_that.visitNo,_that.status,_that.totalAmount,_that.paidAmount,_that.balance,_that.items);case _:
+return $default(_that.id,_that.visitNo,_that.status,_that.flowStatus,_that.totalAmount,_that.paidAmount,_that.balance,_that.items);case _:
   return orElse();
 
 }
@@ -180,10 +181,10 @@ return $default(_that.id,_that.visitNo,_that.status,_that.totalAmount,_that.paid
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String visitNo,  String status,  String totalAmount,  String paidAmount,  String balance,  List<ReceptionVisitItem> items)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String visitNo,  String status,  String flowStatus,  String totalAmount,  String paidAmount,  String balance,  List<ReceptionVisitItem> items)  $default,) {final _that = this;
 switch (_that) {
 case _ReceptionVisit():
-return $default(_that.id,_that.visitNo,_that.status,_that.totalAmount,_that.paidAmount,_that.balance,_that.items);case _:
+return $default(_that.id,_that.visitNo,_that.status,_that.flowStatus,_that.totalAmount,_that.paidAmount,_that.balance,_that.items);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,10 +201,10 @@ return $default(_that.id,_that.visitNo,_that.status,_that.totalAmount,_that.paid
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String visitNo,  String status,  String totalAmount,  String paidAmount,  String balance,  List<ReceptionVisitItem> items)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String visitNo,  String status,  String flowStatus,  String totalAmount,  String paidAmount,  String balance,  List<ReceptionVisitItem> items)?  $default,) {final _that = this;
 switch (_that) {
 case _ReceptionVisit() when $default != null:
-return $default(_that.id,_that.visitNo,_that.status,_that.totalAmount,_that.paidAmount,_that.balance,_that.items);case _:
+return $default(_that.id,_that.visitNo,_that.status,_that.flowStatus,_that.totalAmount,_that.paidAmount,_that.balance,_that.items);case _:
   return null;
 
 }
@@ -215,12 +216,13 @@ return $default(_that.id,_that.visitNo,_that.status,_that.totalAmount,_that.paid
 @JsonSerializable()
 
 class _ReceptionVisit implements ReceptionVisit {
-  const _ReceptionVisit({required this.id, required this.visitNo, required this.status, required this.totalAmount, required this.paidAmount, required this.balance, final  List<ReceptionVisitItem> items = const <ReceptionVisitItem>[]}): _items = items;
+  const _ReceptionVisit({required this.id, required this.visitNo, required this.status, this.flowStatus = 'registered', required this.totalAmount, required this.paidAmount, required this.balance, final  List<ReceptionVisitItem> items = const <ReceptionVisitItem>[]}): _items = items;
   factory _ReceptionVisit.fromJson(Map<String, dynamic> json) => _$ReceptionVisitFromJson(json);
 
 @override final  String id;
 @override final  String visitNo;
 @override final  String status;
+@override@JsonKey() final  String flowStatus;
 @override final  String totalAmount;
 @override final  String paidAmount;
 @override final  String balance;
@@ -245,16 +247,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReceptionVisit&&(identical(other.id, id) || other.id == id)&&(identical(other.visitNo, visitNo) || other.visitNo == visitNo)&&(identical(other.status, status) || other.status == status)&&(identical(other.totalAmount, totalAmount) || other.totalAmount == totalAmount)&&(identical(other.paidAmount, paidAmount) || other.paidAmount == paidAmount)&&(identical(other.balance, balance) || other.balance == balance)&&const DeepCollectionEquality().equals(other._items, _items));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReceptionVisit&&(identical(other.id, id) || other.id == id)&&(identical(other.visitNo, visitNo) || other.visitNo == visitNo)&&(identical(other.status, status) || other.status == status)&&(identical(other.flowStatus, flowStatus) || other.flowStatus == flowStatus)&&(identical(other.totalAmount, totalAmount) || other.totalAmount == totalAmount)&&(identical(other.paidAmount, paidAmount) || other.paidAmount == paidAmount)&&(identical(other.balance, balance) || other.balance == balance)&&const DeepCollectionEquality().equals(other._items, _items));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,visitNo,status,totalAmount,paidAmount,balance,const DeepCollectionEquality().hash(_items));
+int get hashCode => Object.hash(runtimeType,id,visitNo,status,flowStatus,totalAmount,paidAmount,balance,const DeepCollectionEquality().hash(_items));
 
 @override
 String toString() {
-  return 'ReceptionVisit(id: $id, visitNo: $visitNo, status: $status, totalAmount: $totalAmount, paidAmount: $paidAmount, balance: $balance, items: $items)';
+  return 'ReceptionVisit(id: $id, visitNo: $visitNo, status: $status, flowStatus: $flowStatus, totalAmount: $totalAmount, paidAmount: $paidAmount, balance: $balance, items: $items)';
 }
 
 
@@ -265,7 +267,7 @@ abstract mixin class _$ReceptionVisitCopyWith<$Res> implements $ReceptionVisitCo
   factory _$ReceptionVisitCopyWith(_ReceptionVisit value, $Res Function(_ReceptionVisit) _then) = __$ReceptionVisitCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String visitNo, String status, String totalAmount, String paidAmount, String balance, List<ReceptionVisitItem> items
+ String id, String visitNo, String status, String flowStatus, String totalAmount, String paidAmount, String balance, List<ReceptionVisitItem> items
 });
 
 
@@ -282,11 +284,12 @@ class __$ReceptionVisitCopyWithImpl<$Res>
 
 /// Create a copy of ReceptionVisit
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? visitNo = null,Object? status = null,Object? totalAmount = null,Object? paidAmount = null,Object? balance = null,Object? items = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? visitNo = null,Object? status = null,Object? flowStatus = null,Object? totalAmount = null,Object? paidAmount = null,Object? balance = null,Object? items = null,}) {
   return _then(_ReceptionVisit(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,visitNo: null == visitNo ? _self.visitNo : visitNo // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String,flowStatus: null == flowStatus ? _self.flowStatus : flowStatus // ignore: cast_nullable_to_non_nullable
 as String,totalAmount: null == totalAmount ? _self.totalAmount : totalAmount // ignore: cast_nullable_to_non_nullable
 as String,paidAmount: null == paidAmount ? _self.paidAmount : paidAmount // ignore: cast_nullable_to_non_nullable
 as String,balance: null == balance ? _self.balance : balance // ignore: cast_nullable_to_non_nullable

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/dio_client.dart';
 import '../domain/eye_exam.dart';
+import '../domain/timeline_event.dart';
 import '../domain/visit_summary.dart';
 
 final doctorRepositoryProvider =
@@ -74,6 +75,20 @@ class DoctorRepository {
     }
   }
 
+  /// Автоматическая хронология пациента (платежи, осмотры, операции, лечение…)
+  /// — собирается backend'ом, по убыванию времени.
+  Future<List<TimelineEvent>> timeline(String patientId) async {
+    try {
+      final resp = await _dio.get('/patients/$patientId/timeline',
+          queryParameters: {'limit': 200});
+      return (resp.data['events'] as List<dynamic>)
+          .map((e) => TimelineEvent.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.from(e);
+    }
+  }
+
   /// Copies a refractometer DeviceResult into the visit's exam (OD/OS sph/cyl/axis).
   Future<EyeExam> applyRefraction(String visitId, String resultId) async {
     try {
@@ -95,3 +110,7 @@ final patientVisitsProvider = FutureProvider.autoDispose
 final examHistoryProvider = FutureProvider.autoDispose
     .family<List<EyeExam>, String>((ref, patientId) =>
         ref.watch(doctorRepositoryProvider).examHistory(patientId));
+
+final patientTimelineProvider = FutureProvider.autoDispose
+    .family<List<TimelineEvent>, String>((ref, patientId) =>
+        ref.watch(doctorRepositoryProvider).timeline(patientId));

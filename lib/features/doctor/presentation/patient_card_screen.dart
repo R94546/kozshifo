@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/utils/file_saver.dart';
+import '../../../core/utils/flow_labels.dart';
 import '../../../core/widgets/async_value_widget.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../clinical/presentation/operations_section.dart';
@@ -12,8 +13,10 @@ import '../../clinical/presentation/treatments_section.dart';
 import '../../devices/data/devices_repository.dart';
 import '../../devices/domain/device_result.dart';
 import '../../patients/data/patients_repository.dart';
+import '../../queue/data/queue_repository.dart';
 import '../data/doctor_repository.dart';
 import '../domain/eye_exam.dart';
+import '../domain/timeline_event.dart';
 import '../domain/visit_summary.dart';
 
 /// Слитлампово-структурные поля формы 025-8, в порядке бланка.
@@ -64,6 +67,7 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
   bool _saving = false;
   bool _printing = false;
   bool _applyingRefraction = false;
+  bool _finishing = false;
 
   @override
   void dispose() {
@@ -152,6 +156,7 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
       setState(() => _exam = exam);
       _populate(exam);
       ref.invalidate(examHistoryProvider(widget.patientId));
+      ref.invalidate(patientTimelineProvider(widget.patientId));
       _snack('Осмотр сохранён');
     } catch (e) {
       if (mounted) _snack('$e', error: true);
@@ -199,11 +204,52 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
       _populate(exam);
       ref.invalidate(visitDeviceResultsProvider(visitId));
       ref.invalidate(examHistoryProvider(widget.patientId));
+      ref.invalidate(patientTimelineProvider(widget.patientId));
       _snack('Рефракция подтянута из RMK-700');
     } catch (e) {
       if (mounted) _snack('$e', error: true);
     } finally {
       if (mounted) setState(() => _applyingRefraction = false);
+    }
+  }
+
+  /// «Завершить приём»: закрывает активный талон V-дорожки текущего визита —
+  /// flow engine на сервере сам переведёт визит в follow_up/completed.
+  Future<void> _finishAppointment() async {
+    final visitId = _visitId;
+    if (visitId == null) return;
+    final user = ref.read(authControllerProvider).user;
+    // Талон живёт в филиале визита; филиал врача — fallback.
+    final visitBranchId = ref
+        .read(patientVisitsProvider(widget.patientId))
+        .valueOrNull
+        ?.where((v) => v.id == visitId)
+        .map((v) => v.branchId)
+        .firstOrNull;
+    final branchId = visitBranchId ?? user?.branchId;
+    if (branchId == null) {
+      _snack('У пользователя не задан филиал', error: true);
+      return;
+    }
+    setState(() => _finishing = true);
+    try {
+      final repo = ref.read(queueRepositoryProvider);
+      final tickets = await repo.list(branchId: branchId, track: 'doctor');
+      final ticket =
+          tickets.where((t) => t.visitId == visitId && t.isActive).firstOrNull;
+      if (ticket == null) {
+        _snack('Нет активного талона приёма');
+        return;
+      }
+      await repo.done(ticket.id);
+      if (!mounted) return;
+      ref.invalidate(patientVisitsProvider(widget.patientId));
+      ref.invalidate(patientTimelineProvider(widget.patientId));
+      _snack('Приём завершён — статус обновлён');
+    } catch (e) {
+      if (mounted) _snack('$e', error: true);
+    } finally {
+      if (mounted) setState(() => _finishing = false);
     }
   }
 
@@ -236,6 +282,21 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
           orElse: () => const Text('Карта 025-8'),
         ),
         actions: [
+          if (_visitId != null &&
+              (ref.watch(authControllerProvider).user?.can('queue.manage') ??
+                  false))
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilledButton.tonalIcon(
+                onPressed: _finishing ? null : _finishAppointment,
+                icon: _finishing
+                    ? const SizedBox(
+                        height: 16, width: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.task_alt),
+                label: const Text('Завершить приём'),
+              ),
+            ),
           if (_visitId != null && _exam != null)
             Padding(
               padding: const EdgeInsets.only(right: 8),
@@ -316,6 +377,7 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
                       if (!_loadingExam) ...[
                         _abScanSection(canWrite),
                         _history(),
+                        _timeline(),
                         ...clinicalSections,
                       ],
                     ],
@@ -335,6 +397,7 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
                   _examForm(canWrite),
                   const SizedBox(height: 16),
                   _history(),
+                  _timeline(),
                   ...clinicalSections,
                 ],
               ],
@@ -355,6 +418,7 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
   }
 
   Widget _visitPicker(List<VisitSummary> items) {
+    final selected = items.where((v) => v.id == _visitId).firstOrNull;
     return Row(
       children: [
         const Text('Визит:'),
@@ -373,6 +437,17 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
             },
           ),
         ),
+        if (selected != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 12),
+            child: Tooltip(
+              message: 'Статус меняется автоматически',
+              child: Chip(
+                visualDensity: VisualDensity.compact,
+                label: Text(flowStatusLabel(selected.flowStatus)),
+              ),
+            ),
+          ),
         if (_exam == null && _visitId != null)
           const Padding(
             padding: EdgeInsets.only(left: 12),
@@ -506,6 +581,53 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
         decoration: InputDecoration(labelText: label, isDense: true),
       ),
     );
+  }
+
+  /// Иконка события хронологии по его kind (см. backend timeline builder).
+  static IconData _kindIcon(String kind) {
+    if (kind.startsWith('operation_')) return Icons.medical_services_outlined;
+    if (kind.startsWith('treatment_')) return Icons.healing_outlined;
+    if (kind.startsWith('visit_')) return Icons.event_outlined;
+    return switch (kind) {
+      'payment' => Icons.payments_outlined,
+      'exam' => Icons.visibility_outlined,
+      'device_result' => Icons.biotech_outlined,
+      'refund' => Icons.undo,
+      _ => Icons.circle_outlined,
+    };
+  }
+
+  /// Автоматическая хронология пациента — собирается сервером из платежей,
+  /// осмотров, операций, лечений и результатов приборов.
+  Widget _timeline() {
+    final timeline = ref.watch(patientTimelineProvider(widget.patientId));
+    return _section('Хронология', [
+      AsyncValueWidget<List<TimelineEvent>>(
+        value: timeline,
+        onRetry: () =>
+            ref.invalidate(patientTimelineProvider(widget.patientId)),
+        builder: (events) {
+          if (events.isEmpty) return const Text('Событий ещё нет.');
+          return Column(
+            children: [
+              for (final e in events.take(30))
+                ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(_kindIcon(e.kind), size: 18),
+                  title: Text(e.title),
+                  subtitle: Text(
+                    e.detail == null
+                        ? e.dateLabel
+                        : '${e.dateLabel} · ${e.detail}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    ]);
   }
 
   Widget _history() {

@@ -10,6 +10,7 @@ abstract class ReceptionVisit with _$ReceptionVisit {
     required String id,
     required String visitNo,
     required String status,
+    @Default('registered') String flowStatus,
     required String totalAmount,
     required String paidAmount,
     required String balance,

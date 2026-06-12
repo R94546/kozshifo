@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/flow_labels.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/async_value_widget.dart';
 import '../../auth/application/auth_controller.dart';
@@ -362,6 +363,18 @@ class _ReceptionScreenState extends ConsumerState<ReceptionScreen> {
         )
       else ...[
         Text('Визит ${visit.visitNo} · к оплате ${formatMoney(visit.balance)}'),
+        const SizedBox(height: 4),
+        // Статус пути пациента — read-only, его двигает flow engine на сервере.
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Tooltip(
+            message: 'Статус меняется автоматически',
+            child: Chip(
+              visualDensity: VisualDensity.compact,
+              label: Text(flowStatusLabel(visit.flowStatus)),
+            ),
+          ),
+        ),
         const SizedBox(height: 8),
         FilledButton.icon(
           onPressed: (canBill && !_busy) ? _takePayment : null,

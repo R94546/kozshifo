@@ -12,6 +12,7 @@ abstract class VisitSummary with _$VisitSummary {
     required String id,
     required String visitNo,
     required String status,
+    @Default('registered') String flowStatus,
     required String openedAt,
     String? branchId,
   }) = _VisitSummary;
