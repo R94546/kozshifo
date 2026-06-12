@@ -46,10 +46,29 @@ class OperationTypeOut(BaseModel):
     consumables: list[ConsumableOut]
 
 
+# ── Consumable availability (advisory pre-check for the doctor) ───────────────
+class AvailabilityItem(BaseModel):
+    """One template line vs. usable (non-expired) stock in the branch."""
+
+    product_id: UUID
+    product_name: str
+    required: Decimal
+    available: Decimal
+    ok: bool
+
+
+class AvailabilityOut(BaseModel):
+    """Advisory only — the hard guarantee stays at perform time."""
+
+    ok: bool
+    items: list[AvailabilityItem]
+
+
 # ── Operations (instances on a visit) ─────────────────────────────────────────
 class OperationCreate(BaseModel):
     operation_type_id: UUID
     eye: Literal["od", "os", "ou"] = "ou"
+    priority: Literal["normal", "urgent"] = "normal"
     scheduled_at: datetime | None = None
     notes: str | None = None
     doctor_id: UUID | None = None
@@ -65,6 +84,7 @@ class OperationOut(BaseModel):
     operation_type_id: UUID
     type_name: str  # model property -> operation_type.name
     eye: str
+    priority: str
     status: str
     scheduled_at: datetime | None
     performed_at: datetime | None

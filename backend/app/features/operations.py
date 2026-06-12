@@ -24,7 +24,14 @@ from app.models.catalog import Service
 from app.models.inventory import Product
 from app.models.operation import Operation, OperationType, OperationTypeConsumable
 from app.models.visit import Visit, VisitItem
-from app.schemas.operation import OperationCreate, OperationOut, OperationTypeCreate, OperationTypeOut
+from app.schemas.operation import (
+    AvailabilityItem,
+    AvailabilityOut,
+    OperationCreate,
+    OperationOut,
+    OperationTypeCreate,
+    OperationTypeOut,
+)
 
 router = APIRouter(tags=["Operations"])
 
@@ -82,6 +89,39 @@ def create_operation_type(
     return op_type
 
 
+@router.get("/operation-types/{op_type_id}/availability", response_model=AvailabilityOut,
+            dependencies=[Depends(require_permission("operations.read"))])
+def operation_type_availability(
+    op_type_id: UUID,
+    branch_id: UUID,
+    db: Annotated[Session, Depends(get_db)],
+) -> AvailabilityOut:
+    """Advisory pre-check: can this branch cover the type's consumable template?
+
+    Lets the doctor see shortages at prescribe time. Counts only usable stock
+    (`on_hand` already excludes expired batches). Advisory only — the hard,
+    atomic guarantee stays in perform_operation's pre-check + FEFO write-off.
+    """
+    op_type = db.get(OperationType, op_type_id)
+    if op_type is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Operation type not found")
+
+    items: list[AvailabilityItem] = []
+    for line in op_type.consumables:
+        available = on_hand(db, line.product_id, branch_id)
+        items.append(
+            AvailabilityItem(
+                product_id=line.product_id,
+                product_name=line.product_name,
+                required=line.quantity,
+                available=available,
+                ok=available >= line.quantity,
+            )
+        )
+    # all([]) is True: an empty template is trivially coverable.
+    return AvailabilityOut(ok=all(item.ok for item in items), items=items)
+
+
 # ── Operations on a visit ─────────────────────────────────────────────────────
 @router.post("/visits/{visit_id}/operations", response_model=OperationOut,
              status_code=status.HTTP_201_CREATED)
@@ -111,6 +151,7 @@ def prescribe_operation(
         doctor_id=payload.doctor_id or actor.id,
         operation_type_id=op_type.id,
         eye=payload.eye,
+        priority=payload.priority,
         scheduled_at=payload.scheduled_at,
         notes=payload.notes,
     )
@@ -119,8 +160,8 @@ def prescribe_operation(
     operation.visit_item_id = item.id
     record_audit(db, action="prescribe", entity_type="operation", entity_id=operation.id,
                  actor_id=actor.id, branch_id=visit.branch_id,
-                 summary=f"Prescribed operation {op_type.name} ({payload.eye}) on visit {visit.visit_no}, "
-                         f"billed {op_type.price}")
+                 summary=f"Prescribed operation {op_type.name} ({payload.eye}, {payload.priority}) "
+                         f"on visit {visit.visit_no}, billed {op_type.price}")
     db.commit()
     db.refresh(operation)
     return operation

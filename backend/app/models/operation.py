@@ -88,6 +88,8 @@ class Operation(UUIDPKMixin, TimestampMixin, Base):
     )
     # od (right) | os (left) | ou (both)
     eye: Mapped[str] = mapped_column(String(4), default="ou", nullable=False)
+    # normal | urgent — doctor-chosen scheduling priority
+    priority: Mapped[str] = mapped_column(String(12), default="normal", nullable=False)
     # planned -> done | cancelled
     status: Mapped[str] = mapped_column(String(16), default="planned", index=True, nullable=False)
     scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
