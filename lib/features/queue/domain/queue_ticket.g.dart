@@ -9,6 +9,7 @@ part of 'queue_ticket.dart';
 _QueueTicket _$QueueTicketFromJson(Map<String, dynamic> json) => _QueueTicket(
   id: json['id'] as String,
   ticketNumber: json['ticket_number'] as String,
+  track: json['track'] as String? ?? 'doctor',
   patientId: json['patient_id'] as String,
   branchId: json['branch_id'] as String,
   visitId: json['visit_id'] as String?,
@@ -17,6 +18,7 @@ _QueueTicket _$QueueTicketFromJson(Map<String, dynamic> json) => _QueueTicket(
   status: json['status'] as String,
   priority: (json['priority'] as num?)?.toInt() ?? 0,
   calledAt: json['called_at'] as String?,
+  calledById: json['called_by_id'] as String?,
   createdAt: json['created_at'] as String,
 );
 
@@ -24,6 +26,7 @@ Map<String, dynamic> _$QueueTicketToJson(_QueueTicket instance) =>
     <String, dynamic>{
       'id': instance.id,
       'ticket_number': instance.ticketNumber,
+      'track': instance.track,
       'patient_id': instance.patientId,
       'branch_id': instance.branchId,
       'visit_id': instance.visitId,
@@ -32,5 +35,6 @@ Map<String, dynamic> _$QueueTicketToJson(_QueueTicket instance) =>
       'status': instance.status,
       'priority': instance.priority,
       'called_at': instance.calledAt,
+      'called_by_id': instance.calledById,
       'created_at': instance.createdAt,
     };

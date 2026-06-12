@@ -11,8 +11,10 @@ import '../../auth/application/auth_controller.dart';
 import '../data/queue_repository.dart';
 import '../domain/queue_ticket.dart';
 
-/// Управление живой очередью филиала: вызов следующего, приём, завершение,
-/// пропуск. Автообновление каждые 5 секунд; ссылка на TV-табло — в шапке.
+/// Управление живой очередью филиала по двум дорожкам — «Диагностика (D)» и
+/// «К врачу (V)»: вызов следующего в каждой дорожке, приём, завершение,
+/// пропуск. Завершение D-талона автоматически рождает V-талон на сервере.
+/// Автообновление каждые 5 секунд; ссылка на TV-табло — в шапке.
 class QueueScreen extends ConsumerStatefulWidget {
   const QueueScreen({super.key});
 
@@ -43,11 +45,16 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
     super.dispose();
   }
 
-  Future<void> _act(Future<QueueTicket> Function() action) async {
+  Future<void> _act(Future<QueueTicket> Function() action,
+      {String? successMessage}) async {
     final branchId = _branchId;
     setState(() => _busy = true);
     try {
       await action();
+      if (mounted && successMessage != null) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(successMessage)));
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -151,16 +158,6 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
                           labelText: 'Кабинет', isDense: true),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  FilledButton.icon(
-                    onPressed: _busy
-                        ? null
-                        : () => _act(() => ref
-                            .read(queueRepositoryProvider)
-                            .callNext(branchId: branchId, room: _room.text.trim())),
-                    icon: const Icon(Icons.campaign_outlined),
-                    label: const Text('Вызвать следующего'),
-                  ),
                 ],
               ),
             ),
@@ -169,30 +166,86 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
               value: tickets,
               onRetry: () => ref.invalidate(queueListProvider(branchId)),
               builder: (items) {
-                final active = items.where((t) => t.isActive).toList();
-                final waiting = items.where((t) => t.isWaiting).toList();
+                // Одна загрузка на обе дорожки: список делится по t.track.
                 final wide = MediaQuery.sizeOf(context).width >= 900;
-                final panels = [
+                final tracks = [
                   Expanded(
-                      child: _panel(context, 'Вызваны / на приёме', active,
-                          canManage, _activeActions)),
+                      child: _trackSection(context, branchId,
+                          title: 'Диагностика (D)',
+                          track: 'diagnostic',
+                          items: items,
+                          canManage: canManage)),
                   Expanded(
-                      child: _panel(context, 'Ожидают (${waiting.length})',
-                          waiting, canManage, _waitingActions)),
+                      child: _trackSection(context, branchId,
+                          title: 'К врачу (V)',
+                          track: 'doctor',
+                          items: items,
+                          canManage: canManage)),
                 ];
                 return Padding(
                   padding: const EdgeInsets.all(16),
                   child: wide
                       ? Row(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: panels)
-                      : Column(children: panels),
+                          children: tracks)
+                      : Column(children: tracks),
                 );
               },
             ),
           ),
         ],
       ),
+    );
+  }
+
+  /// Половина экрана для одной дорожки: заголовок + свой «Вызвать следующего»
+  /// + панели «Вызваны / на приёме» и «Ожидают».
+  Widget _trackSection(BuildContext context, String branchId,
+      {required String title,
+      required String track,
+      required List<QueueTicket> items,
+      required bool canManage}) {
+    final mine = items.where((t) => t.track == track).toList();
+    final active = mine.where((t) => t.isActive).toList();
+    final waiting = mine.where((t) => t.isWaiting).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(title,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+              ),
+              if (canManage)
+                FilledButton.icon(
+                  onPressed: _busy
+                      ? null
+                      : () => _act(() => ref
+                          .read(queueRepositoryProvider)
+                          .callNext(
+                              branchId: branchId,
+                              room: _room.text.trim(),
+                              track: track)),
+                  icon: const Icon(Icons.campaign_outlined),
+                  label: const Text('Вызвать следующего'),
+                ),
+            ],
+          ),
+        ),
+        Expanded(
+            child: _panel(context, 'Вызваны / на приёме', active, canManage,
+                _activeActions)),
+        Expanded(
+            child: _panel(context, 'Ожидают (${waiting.length})', waiting,
+                canManage, _waitingActions)),
+      ],
     );
   }
 
@@ -207,7 +260,14 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
         TextButton(
           onPressed: _busy
               ? null
-              : () => _act(() => ref.read(queueRepositoryProvider).done(t.id)),
+              // Завершение диагностики автоматически создаёт V-талон на
+              // сервере — подсказываем оператору, что пациент не «потерялся».
+              : () => _act(
+                    () => ref.read(queueRepositoryProvider).done(t.id),
+                    successMessage: t.track == 'diagnostic'
+                        ? 'Пациент переведён в очередь к врачу'
+                        : null,
+                  ),
           child: const Text('Готово'),
         ),
       ];

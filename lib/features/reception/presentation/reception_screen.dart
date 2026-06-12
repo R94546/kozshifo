@@ -406,7 +406,7 @@ class _ReceptionScreenState extends ConsumerState<ReceptionScreen> {
                 children: [
                   const Icon(Icons.confirmation_number_outlined),
                   const SizedBox(width: 8),
-                  Text('Талон очереди: ${r.queueTicketNumber}',
+                  Text('Талон диагностики: ${r.queueTicketNumber}',
                       style: Theme.of(context)
                           .textTheme
                           .titleLarge

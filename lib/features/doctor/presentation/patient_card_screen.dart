@@ -259,40 +259,93 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
             return const Center(
                 child: Text('У пациента нет визитов — карта осмотра ведётся в рамках визита.'));
           }
+          // Широкий экран → две панели: карта+осмотр слева, диагностика и
+          // клинические секции справа — врач работает без переключения экранов.
+          final wide = MediaQuery.sizeOf(context).width >= 1200;
+          const examSpinner = Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: CircularProgressIndicator()),
+          );
+          // Склад проверяется по филиалу ВИЗИТА (perform спишет именно там);
+          // филиал врача — лишь fallback для старых записей без branch_id.
+          final visitBranchId = items
+              .where((v) => v.id == _visitId)
+              .map((v) => v.branchId)
+              .firstOrNull;
+          final clinicalSections = <Widget>[
+            if (_visitId != null &&
+                (ref.watch(authControllerProvider).user
+                        ?.can('operations.read') ??
+                    false))
+              OperationsSection(
+                  visitId: _visitId!,
+                  patientId: widget.patientId,
+                  branchId: visitBranchId),
+            if (_visitId != null &&
+                (ref.watch(authControllerProvider).user
+                        ?.can('treatments.read') ??
+                    false))
+              TreatmentsSection(
+                  visitId: _visitId!, patientId: widget.patientId),
+          ];
+          final Widget content;
+          if (wide) {
+            content = Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _visitPicker(items),
+                      const SizedBox(height: 12),
+                      if (_loadingExam)
+                        examSpinner
+                      else
+                        _examForm(canWrite, withAbScan: false),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (!_loadingExam) ...[
+                        _abScanSection(canWrite),
+                        _history(),
+                        ...clinicalSections,
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            );
+          } else {
+            content = Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _visitPicker(items),
+                const SizedBox(height: 12),
+                if (_loadingExam)
+                  examSpinner
+                else ...[
+                  _examForm(canWrite),
+                  const SizedBox(height: 16),
+                  _history(),
+                  ...clinicalSections,
+                ],
+              ],
+            );
+          }
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 900),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _visitPicker(items),
-                    const SizedBox(height: 12),
-                    if (_loadingExam)
-                      const Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    else ...[
-                      _examForm(canWrite),
-                      const SizedBox(height: 16),
-                      _history(),
-                      if (_visitId != null &&
-                          (ref.watch(authControllerProvider).user
-                                  ?.can('operations.read') ??
-                              false))
-                        OperationsSection(
-                            visitId: _visitId!, patientId: widget.patientId),
-                      if (_visitId != null &&
-                          (ref.watch(authControllerProvider).user
-                                  ?.can('treatments.read') ??
-                              false))
-                        TreatmentsSection(
-                            visitId: _visitId!, patientId: widget.patientId),
-                    ],
-                  ],
-                ),
+                constraints: const BoxConstraints(maxWidth: 1400),
+                child: content,
               ),
             ),
           );
@@ -329,7 +382,9 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
     );
   }
 
-  Widget _examForm(bool canWrite) {
+  /// Форма осмотра. На узких экранах A/B-скан рендерится внутри (как раньше),
+  /// на широких — `withAbScan: false`, и секция уходит в правую панель.
+  Widget _examForm(bool canWrite, {bool withAbScan = true}) {
     final enabled = canWrite && _visitId != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -366,13 +421,7 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
         _section('Биомикроскопия (по бланку)', [
           for (final (key, label) in _structureFields) _text(key, label, enabled),
         ]),
-        _section('Кўз A/B-скан текшеруви', [
-          _text('ab_scan_note', 'Заключение A/B-скан', enabled, maxLines: 2),
-          if (_visitId != null &&
-              (ref.watch(authControllerProvider).user?.can('device_results.read') ??
-                  false))
-            _AbScanResults(visitId: _visitId!),
-        ]),
+        if (withAbScan) _abScanSection(canWrite),
         _section('Ташхис / Тавсия (заключение)', [
           _text('diagnosis', 'Ташхис (диагноз)', enabled, maxLines: 2),
           _text('icd10', 'МКБ-10 (код)', enabled),
@@ -394,6 +443,19 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
               textAlign: TextAlign.center),
       ],
     );
+  }
+
+  /// Секция «Кўз A/B-скан текшеруви» — отдельным виджетом: на широких экранах
+  /// живёт в правой панели, на узких — внутри формы на прежнем месте.
+  Widget _abScanSection(bool canWrite) {
+    final enabled = canWrite && _visitId != null;
+    return _section('Кўз A/B-скан текшеруви', [
+      _text('ab_scan_note', 'Заключение A/B-скан', enabled, maxLines: 2),
+      if (_visitId != null &&
+          (ref.watch(authControllerProvider).user?.can('device_results.read') ??
+              false))
+        _AbScanResults(visitId: _visitId!),
+    ]);
   }
 
   Widget _visusRow(String title, String eye, bool enabled) {

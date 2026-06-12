@@ -13,11 +13,15 @@ class QueueRepository {
 
   final Dio _dio;
 
-  Future<List<QueueTicket>> list(String branchId, {bool activeOnly = true}) async {
+  /// [track]: `doctor` | `diagnostic`; null = обе дорожки одним запросом
+  /// (экран очереди делит один список на две колонки на клиенте).
+  Future<List<QueueTicket>> list(
+      {required String branchId, String? track, bool activeOnly = true}) async {
     try {
       final resp = await _dio.get('/queue', queryParameters: {
         'branch_id': branchId,
         'active_only': activeOnly,
+        'track': ?track,
       });
       return (resp.data as List<dynamic>)
           .map((e) => QueueTicket.fromJson(e as Map<String, dynamic>))
@@ -27,10 +31,13 @@ class QueueRepository {
     }
   }
 
-  Future<QueueTicket> callNext({required String branchId, required String room}) async {
+  Future<QueueTicket> callNext(
+      {required String branchId,
+      required String room,
+      String track = 'doctor'}) async {
     try {
       final resp = await _dio.post('/queue/call-next',
-          data: {'branch_id': branchId, 'room': room});
+          data: {'branch_id': branchId, 'room': room, 'track': track});
       return QueueTicket.fromJson(resp.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.from(e);
@@ -53,4 +60,4 @@ class QueueRepository {
 
 final queueListProvider = FutureProvider.autoDispose
     .family<List<QueueTicket>, String>((ref, branchId) =>
-        ref.watch(queueRepositoryProvider).list(branchId));
+        ref.watch(queueRepositoryProvider).list(branchId: branchId));

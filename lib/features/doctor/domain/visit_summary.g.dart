@@ -12,6 +12,7 @@ _VisitSummary _$VisitSummaryFromJson(Map<String, dynamic> json) =>
       visitNo: json['visit_no'] as String,
       status: json['status'] as String,
       openedAt: json['opened_at'] as String,
+      branchId: json['branch_id'] as String?,
     );
 
 Map<String, dynamic> _$VisitSummaryToJson(_VisitSummary instance) =>
@@ -20,4 +21,5 @@ Map<String, dynamic> _$VisitSummaryToJson(_VisitSummary instance) =>
       'visit_no': instance.visitNo,
       'status': instance.status,
       'opened_at': instance.openedAt,
+      'branch_id': instance.branchId,
     };

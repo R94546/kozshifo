@@ -12,6 +12,7 @@ abstract class QueueTicket with _$QueueTicket {
   const factory QueueTicket({
     required String id,
     required String ticketNumber,
+    @Default('doctor') String track,
     required String patientId,
     required String branchId,
     String? visitId,
@@ -20,6 +21,7 @@ abstract class QueueTicket with _$QueueTicket {
     required String status,
     @Default(0) int priority,
     String? calledAt,
+    String? calledById,
     required String createdAt,
   }) = _QueueTicket;
 

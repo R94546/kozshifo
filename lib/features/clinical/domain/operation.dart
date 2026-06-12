@@ -16,6 +16,7 @@ abstract class Operation with _$Operation {
     required String operationTypeId,
     required String typeName,
     required String eye,
+    @Default('normal') String priority,
     required String status,
     String? scheduledAt,
     String? performedAt,

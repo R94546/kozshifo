@@ -72,6 +72,16 @@ void main() {
     expect(ou.eyeLabel, 'оба глаза');
   });
 
+  test('Operation priority: parses urgent, defaults to normal when omitted', () {
+    final urgent = Operation.fromJson({...operationJson, 'priority': 'urgent'});
+    expect(urgent.priority, 'urgent');
+    expect(Operation.fromJson(urgent.toJson()), urgent);
+
+    // operationJson has no 'priority' key — the model must default it.
+    final op = Operation.fromJson(operationJson);
+    expect(op.priority, 'normal');
+  });
+
   test('Operation done/cancelled labels; isPlanned false', () {
     final done = Operation.fromJson({
       ...operationJson,

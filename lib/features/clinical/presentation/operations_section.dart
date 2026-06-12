@@ -12,10 +12,13 @@ import '../domain/operation.dart';
 /// назначение автоматически добавляет связанную услугу в счёт визита.
 class OperationsSection extends ConsumerWidget {
   const OperationsSection(
-      {super.key, required this.visitId, required this.patientId});
+      {super.key, required this.visitId, required this.patientId, this.branchId});
 
   final String visitId;
   final String patientId;
+
+  /// Филиал визита — склад, с которого perform реально спишет расходники.
+  final String? branchId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -86,6 +89,17 @@ class OperationsSection extends ConsumerWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (op.priority == 'urgent')
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Chip(
+                label: const Text('срочная'),
+                visualDensity: VisualDensity.compact,
+                backgroundColor: Colors.red.withValues(alpha: 0.12),
+                labelStyle: const TextStyle(color: Colors.red, fontSize: 12),
+                side: BorderSide.none,
+              ),
+            ),
           Chip(
             label: Text(op.statusLabel),
             backgroundColor: statusColor.withValues(alpha: 0.15),
@@ -151,7 +165,8 @@ class OperationsSection extends ConsumerWidget {
   Future<void> _prescribe(BuildContext context, WidgetRef ref) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => _PrescribeOperationDialog(visitId: visitId),
+      builder: (_) =>
+          _PrescribeOperationDialog(visitId: visitId, branchId: branchId),
     );
     if (ok == true && context.mounted) {
       ref.invalidate(visitOperationsProvider(visitId));
@@ -167,11 +182,13 @@ class OperationsSection extends ConsumerWidget {
   }
 }
 
-/// Диалог назначения: тип операции (с ценой), глаз, примечание.
+/// Диалог назначения: тип операции (с ценой), приоритет, глаз, примечание +
+/// живая проверка наличия расходников по филиалу визита (advisory).
 class _PrescribeOperationDialog extends ConsumerStatefulWidget {
-  const _PrescribeOperationDialog({required this.visitId});
+  const _PrescribeOperationDialog({required this.visitId, this.branchId});
 
   final String visitId;
+  final String? branchId;
 
   @override
   ConsumerState<_PrescribeOperationDialog> createState() =>
@@ -183,12 +200,46 @@ class _PrescribeOperationDialogState
   final _notes = TextEditingController();
   String? _typeId;
   String _eye = 'od';
+  String _priority = 'normal';
   bool _saving = false;
+
+  // Advisory consumables check for the selected type: null → panel hidden
+  // (no type yet / no branch / fetch failed). Never blocks prescribing.
+  OperationAvailability? _availability;
+  bool _checkingAvailability = false;
 
   @override
   void dispose() {
     _notes.dispose();
     super.dispose();
+  }
+
+  /// Filiал врача — операционный филиал по конвенции проекта (как на
+  /// ресепшене). Без филиала проверка молча пропускается; ошибка сети —
+  /// просто прячем панель: advisory не должен ломать назначение.
+  Future<void> _checkAvailability(String typeId) async {
+    // Склад проверяется по филиалу ВИЗИТА (perform списывает именно там);
+    // филиал врача — только fallback для старых записей без branch_id.
+    final branchId =
+        widget.branchId ?? ref.read(authControllerProvider).user?.branchId;
+    if (branchId == null) return;
+    setState(() {
+      _checkingAvailability = true;
+      _availability = null;
+    });
+    try {
+      final result = await ref
+          .read(clinicalRepositoryProvider)
+          .availability(typeId, branchId);
+      if (!mounted || _typeId != typeId) return; // тип уже сменили
+      setState(() => _availability = result);
+    } catch (_) {
+      // advisory — скрываем панель, назначение остаётся доступным
+    } finally {
+      if (mounted && _typeId == typeId) {
+        setState(() => _checkingAvailability = false);
+      }
+    }
   }
 
   Future<void> _save() async {
@@ -201,6 +252,7 @@ class _PrescribeOperationDialogState
             visitId: widget.visitId,
             operationTypeId: typeId,
             eye: _eye,
+            priority: _priority,
             notes: notes.isEmpty ? null : notes,
           );
       if (mounted) Navigator.of(context).pop(true);
@@ -223,52 +275,77 @@ class _PrescribeOperationDialogState
       title: const Text('Назначить операцию'),
       content: SizedBox(
         width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            types.when(
-              data: (items) {
-                final active = items.where((t) => t.isActive).toList();
-                return DropdownButtonFormField<String>(
-                  initialValue: _typeId,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Операция'),
-                  items: [
-                    for (final t in active)
-                      DropdownMenuItem(
-                        value: t.id,
-                        child: Text('${t.name} — ${formatMoney(t.price)}',
-                            overflow: TextOverflow.ellipsis),
-                      ),
-                  ],
-                  onChanged: (v) => setState(() => _typeId = v),
-                );
-              },
-              loading: () => const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: LinearProgressIndicator(),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              types.when(
+                data: (items) {
+                  final active = items.where((t) => t.isActive).toList();
+                  return DropdownButtonFormField<String>(
+                    initialValue: _typeId,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: 'Операция'),
+                    items: [
+                      for (final t in active)
+                        DropdownMenuItem(
+                          value: t.id,
+                          child: Text('${t.name} — ${formatMoney(t.price)}',
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                    ],
+                    onChanged: (v) {
+                      setState(() {
+                        _typeId = v;
+                        _availability = null;
+                      });
+                      if (v != null) _checkAvailability(v);
+                    },
+                  );
+                },
+                loading: () => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: LinearProgressIndicator(),
+                ),
+                error: (e, _) => Text('$e',
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.error)),
               ),
-              error: (e, _) => Text('$e',
-                  style: TextStyle(color: Theme.of(context).colorScheme.error)),
-            ),
-            const SizedBox(height: 16),
-            SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'od', label: Text('OD')),
-                ButtonSegment(value: 'os', label: Text('OS')),
-                ButtonSegment(value: 'ou', label: Text('OU')),
-              ],
-              selected: {_eye},
-              onSelectionChanged: (s) => setState(() => _eye = s.first),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _notes,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                  labelText: 'Примечание (необязательно)'),
-            ),
-          ],
+              if (_checkingAvailability)
+                const Padding(
+                  padding: EdgeInsets.only(top: 12),
+                  child: LinearProgressIndicator(),
+                )
+              else if (_availability != null)
+                _availabilityPanel(context, _availability!),
+              const SizedBox(height: 16),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'normal', label: Text('Обычная')),
+                  ButtonSegment(value: 'urgent', label: Text('Срочная')),
+                ],
+                selected: {_priority},
+                onSelectionChanged: (s) => setState(() => _priority = s.first),
+              ),
+              const SizedBox(height: 16),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'od', label: Text('OD')),
+                  ButtonSegment(value: 'os', label: Text('OS')),
+                  ButtonSegment(value: 'ou', label: Text('OU')),
+                ],
+                selected: {_eye},
+                onSelectionChanged: (s) => setState(() => _eye = s.first),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _notes,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                    labelText: 'Примечание (необязательно)'),
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -286,6 +363,74 @@ class _PrescribeOperationDialogState
               : const Text('Назначить'),
         ),
       ],
+    );
+  }
+
+  /// Компактная панель наличия расходников: строка на каждый расходник
+  /// («название — требуется X, на складе Y») + итоговая строка. Дефицит —
+  /// янтарное предупреждение: назначать МОЖНО, заблокируется лишь выполнение.
+  Widget _availabilityPanel(BuildContext context, OperationAvailability a) {
+    if (a.items.isEmpty) return const SizedBox.shrink(); // нет шаблона — нечего показывать
+    final textTheme = Theme.of(context).textTheme;
+    final errorColor = Theme.of(context).colorScheme.error;
+    final accent = a.ok ? Colors.green : Colors.amber;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: accent.withValues(alpha: 0.08),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final item in a.items)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  Icon(
+                    item.ok ? Icons.check_circle_outline : Icons.cancel_outlined,
+                    size: 16,
+                    color: item.ok ? Colors.green : errorColor,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '${item.name} — требуется ${item.required}, '
+                      'на складе ${item.available}',
+                      style: textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Row(
+            children: [
+              Icon(
+                a.ok
+                    ? Icons.inventory_2_outlined
+                    : Icons.warning_amber_outlined,
+                size: 16,
+                color: a.ok ? Colors.green.shade700 : Colors.amber.shade900,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  a.ok
+                      ? 'Расходников достаточно'
+                      : 'Не хватает расходников — выполнение будет заблокировано',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: a.ok ? Colors.green.shade700 : Colors.amber.shade900,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

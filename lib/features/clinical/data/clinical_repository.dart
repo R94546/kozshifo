@@ -10,6 +10,23 @@ import '../domain/treatment.dart';
 final clinicalRepositoryProvider = Provider<ClinicalRepository>(
     (ref) => ClinicalRepository(ref.watch(dioProvider)));
 
+/// One consumable-template line vs. usable stock in the branch.
+/// `required`/`available` are decimal strings (e.g. "2.000") — never doubles.
+typedef ConsumableAvailability = ({
+  String productId,
+  String name,
+  String required,
+  String available,
+  bool ok,
+});
+
+/// Advisory availability verdict for an operation type in a branch.
+/// `ok` is true when every template line is coverable (empty template → true).
+typedef OperationAvailability = ({
+  bool ok,
+  List<ConsumableAvailability> items,
+});
+
 /// Operations + treatment prescriptions of the clinical loop.
 /// Decimals (price, quantity) are strings end-to-end — the server owns the math.
 class ClinicalRepository {
@@ -41,18 +58,48 @@ class ClinicalRepository {
     }
   }
 
+  /// Advisory pre-check: can `branchId` cover the type's consumable template?
+  /// Advisory only — performOperation still hard-checks stock atomically.
+  Future<OperationAvailability> availability(
+      String opTypeId, String branchId) async {
+    try {
+      final resp = await _dio.get(
+        '/operation-types/$opTypeId/availability',
+        queryParameters: {'branch_id': branchId},
+      );
+      final data = resp.data as Map<String, dynamic>;
+      return (
+        ok: data['ok'] as bool,
+        items: [
+          for (final raw in data['items'] as List<dynamic>)
+            (
+              productId: (raw as Map<String, dynamic>)['product_id'] as String,
+              name: raw['product_name'] as String,
+              required: raw['required'] as String,
+              available: raw['available'] as String,
+              ok: raw['ok'] as bool,
+            ),
+        ],
+      );
+    } on DioException catch (e) {
+      throw ApiException.from(e);
+    }
+  }
+
   /// Prescribe an operation; the backend also bills the linked service
   /// onto the visit in the same transaction.
   Future<Operation> prescribeOperation({
     required String visitId,
     required String operationTypeId,
     required String eye,
+    String priority = 'normal',
     String? notes,
   }) async {
     try {
       final resp = await _dio.post('/visits/$visitId/operations', data: {
         'operation_type_id': operationTypeId,
         'eye': eye,
+        'priority': priority,
         'notes': ?notes,
       });
       return Operation.fromJson(resp.data as Map<String, dynamic>);
