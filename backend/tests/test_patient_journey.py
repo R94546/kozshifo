@@ -143,3 +143,20 @@ def test_rbac_doctor_cannot_register_patient(client, auth):
     )
     assert denied.status_code == 403
     assert "patients.create" in denied.json()["detail"]
+
+
+def test_demo_staff_seeded_and_can_login(client):
+    """Dev seed creates one ready account per role (prod seeds NONE of them)."""
+    for email, password, perm in (
+        ("vrach@kozshifo.uz", "Vrach!2026", "exams.write"),
+        ("reception@kozshifo.uz", "Reception!2026", "visits.create"),
+        ("kassa@kozshifo.uz", "Kassa!2026", "payments.create"),
+        ("sklad@kozshifo.uz", "Sklad!2026", "inventory.manage"),
+    ):
+        resp = client.post(f"{API}/auth/login",
+                           data={"username": email, "password": password})
+        assert resp.status_code == 200, f"{email}: {resp.text}"
+        me = client.get(f"{API}/auth/me", headers={
+            "Authorization": f"Bearer {resp.json()['access_token']}"}).json()
+        assert perm in me["permissions"], f"{email} lacks {perm}"
+        assert me["is_superuser"] is False

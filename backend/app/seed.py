@@ -85,6 +85,34 @@ def _seed_director(db: Session, branch: Branch, roles: dict[str, Role]) -> None:
         db.flush()
 
 
+# Demo staff — ONE account per role for trying the system. DEV ONLY: these
+# well-known passwords must never exist in production (there the owner creates
+# staff through the /admin screen with real passwords).
+_DEMO_STAFF: list[tuple[str, str, str, str]] = [
+    # (email, full_name, password, role)
+    ("vrach@kozshifo.uz", "Доктор Исмоилов А.А.", "Vrach!2026", "Doctor"),
+    ("reception@kozshifo.uz", "Регистратор Юлдашева Н.", "Reception!2026", "Reception"),
+    ("kassa@kozshifo.uz", "Кассир Каримов Ш.", "Kassa!2026", "Cashier"),
+    ("sklad@kozshifo.uz", "Завсклад Турсунов Б.", "Sklad!2026", "Warehouse"),
+]
+
+
+def _seed_demo_staff(db: Session, branch: Branch, roles: dict[str, Role]) -> None:
+    if settings.environment != "development":
+        return
+    for email, full_name, password, role_name in _DEMO_STAFF:
+        if db.execute(select(User).where(User.email == email)).scalar_one_or_none() is None:
+            user = User(
+                email=email,
+                full_name=full_name,
+                hashed_password=hash_password(password),
+                branch_id=branch.id,
+            )
+            user.roles = [roles[role_name]]
+            db.add(user)
+    db.flush()
+
+
 def _seed_services(db: Session) -> None:
     category = db.execute(
         select(ServiceCategory).where(ServiceCategory.name == "Диагностика")
@@ -228,6 +256,7 @@ def run_seed() -> None:
         roles = _seed_roles(db, perms)
         branch = _seed_branch(db)
         _seed_director(db, branch, roles)
+        _seed_demo_staff(db, branch, roles)
         _seed_services(db)
         _seed_devices(db, branch)
         _seed_inventory(db)
