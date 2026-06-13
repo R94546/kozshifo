@@ -21,6 +21,7 @@ import '../data/exam_draft_store.dart';
 import '../domain/eye_exam.dart';
 import '../domain/timeline_event.dart';
 import '../domain/visit_summary.dart';
+import 'patient_info_card.dart';
 
 /// Слитлампово-структурные поля формы 025-8, в порядке бланка.
 const _structureFields = <(String, String)>[
@@ -458,9 +459,12 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
                   ),
                 );
               }
-              // Широкий экран → две панели: карта+осмотр слева, диагностика и
-              // клинические секции справа — врач работает без переключения экранов.
-              final wide = MediaQuery.sizeOf(context).width >= 1200;
+              // Три колонки врача (≥1280px): ПАЦИЕНТ | ДИАГНОСТИКА | РЕШЕНИЕ —
+              // врач не переключает окна. 960–1280px → 2 колонки (Пациент +
+              // объединённая «Осмотр»). Уже → один вертикальный скролл.
+              final width = MediaQuery.sizeOf(context).width;
+              final threeCol = width >= 1280;
+              final twoCol = !threeCol && width >= 960;
               const examSpinner = Padding(
                 padding: EdgeInsets.all(32),
                 child: Center(child: CircularProgressIndicator()),
@@ -471,89 +475,156 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
                   .where((v) => v.id == _visitId)
                   .map((v) => v.branchId)
                   .firstOrNull;
-              final clinicalSections = <Widget>[
-                if (_visitId != null &&
-                    (ref
-                            .watch(authControllerProvider)
-                            .user
-                            ?.can('operations.read') ??
-                        false))
-                  OperationsSection(
-                    visitId: _visitId!,
-                    patientId: widget.patientId,
-                    branchId: visitBranchId,
-                  ),
-                if (_visitId != null &&
-                    (ref
-                            .watch(authControllerProvider)
-                            .user
-                            ?.can('treatments.read') ??
-                        false))
-                  TreatmentsSection(
-                    visitId: _visitId!,
-                    patientId: widget.patientId,
-                  ),
+
+              // ── Содержимое колонок ────────────────────────────────────────
+              // ПАЦИЕНТ: карточка + история осмотров + хронология.
+              List<Widget> patientColumn() => [
+                PatientInfoCard(patientId: widget.patientId),
+                if (!_loadingExam) ...[_history(), _timeline()],
               ];
-              final Widget content;
-              if (wide) {
-                content = Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _visitPicker(items),
-                          const SizedBox(height: 12),
-                          if (_loadingExam)
-                            examSpinner
-                          else
-                            _examForm(canWrite, withAbScan: false),
-                        ],
-                      ),
+              // ДИАГНОСТИКА: приборы/сканы + структурные показания осмотра.
+              List<Widget> diagnosticsColumn() => [
+                if (_loadingExam)
+                  examSpinner
+                else ...[
+                  _abScanSection(canWrite),
+                  _examReadings(canWrite),
+                ],
+              ];
+              // РЕШЕНИЕ ВРАЧА: диагноз/МКБ/рекомендации + операции + лечение +
+              // «Сохранить осмотр».
+              List<Widget> decisionColumn() => [
+                if (!_loadingExam) ...[
+                  _examConclusion(canWrite),
+                  if (_visitId != null &&
+                      (ref
+                              .watch(authControllerProvider)
+                              .user
+                              ?.can('operations.read') ??
+                          false))
+                    OperationsSection(
+                      visitId: _visitId!,
+                      patientId: widget.patientId,
+                      branchId: visitBranchId,
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (!_loadingExam) ...[
-                            _abScanSection(canWrite),
-                            _history(),
-                            _timeline(),
-                            ...clinicalSections,
-                          ],
-                        ],
-                      ),
+                  if (_visitId != null &&
+                      (ref
+                              .watch(authControllerProvider)
+                              .user
+                              ?.can('treatments.read') ??
+                          false))
+                    TreatmentsSection(
+                      visitId: _visitId!,
+                      patientId: widget.patientId,
                     ),
-                  ],
-                );
-              } else {
-                content = Column(
+                ],
+              ];
+
+              Widget scrollColumn(List<Widget> children) => SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: children,
+                ),
+              );
+
+              if (threeCol) {
+                // Каждая колонка скроллится независимо.
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _visitPicker(items),
-                    const SizedBox(height: 12),
-                    if (_loadingExam)
-                      examSpinner
-                    else ...[
-                      _examForm(canWrite),
-                      const SizedBox(height: 16),
-                      _history(),
-                      _timeline(),
-                      ...clinicalSections,
-                    ],
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                      child: _visitPicker(items),
+                    ),
+                    Expanded(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: scrollColumn([
+                              _columnHeader('ПАЦИЕНТ'),
+                              ...patientColumn(),
+                            ]),
+                          ),
+                          const VerticalDivider(width: 1),
+                          Expanded(
+                            flex: 3,
+                            child: scrollColumn([
+                              _columnHeader('ДИАГНОСТИКА'),
+                              ...diagnosticsColumn(),
+                            ]),
+                          ),
+                          const VerticalDivider(width: 1),
+                          Expanded(
+                            flex: 3,
+                            child: scrollColumn([
+                              _columnHeader('РЕШЕНИЕ ВРАЧА'),
+                              ...decisionColumn(),
+                            ]),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 );
               }
+
+              if (twoCol) {
+                // 2 колонки: ПАЦИЕНТ | ДИАГНОСТИКА + РЕШЕНИЕ (одной лентой).
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                      child: _visitPicker(items),
+                    ),
+                    Expanded(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: scrollColumn([
+                              _columnHeader('ПАЦИЕНТ'),
+                              ...patientColumn(),
+                            ]),
+                          ),
+                          const VerticalDivider(width: 1),
+                          Expanded(
+                            flex: 3,
+                            child: scrollColumn([
+                              _columnHeader('ДИАГНОСТИКА'),
+                              ...diagnosticsColumn(),
+                              _columnHeader('РЕШЕНИЕ ВРАЧА'),
+                              ...decisionColumn(),
+                            ]),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }
+
+              // Узкий экран → один вертикальный скролл, все секции по очереди.
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1400),
-                    child: content,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _visitPicker(items),
+                      const SizedBox(height: 12),
+                      _columnHeader('ПАЦИЕНТ'),
+                      ...patientColumn(),
+                      _columnHeader('ДИАГНОСТИКА'),
+                      ...diagnosticsColumn(),
+                      _columnHeader('РЕШЕНИЕ ВРАЧА'),
+                      ...decisionColumn(),
+                    ],
                   ),
                 ),
               );
@@ -604,9 +675,26 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
     );
   }
 
-  /// Форма осмотра. На узких экранах A/B-скан рендерится внутри (как раньше),
-  /// на широких — `withAbScan: false`, и секция уходит в правую панель.
-  Widget _examForm(bool canWrite, {bool withAbScan = true}) {
+  /// Заголовок колонки (ПАЦИЕНТ / ДИАГНОСТИКА / РЕШЕНИЕ ВРАЧА).
+  Widget _columnHeader(String title) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, top: 4),
+      child: Text(
+        title,
+        style: theme.textTheme.titleSmall?.copyWith(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  /// Колонка ДИАГНОСТИКА — структурные показания осмотра: жалобы/анамнез,
+  /// Visus/рефракция, ВГД, поле зрения, биомикроскопия. A/B-скан рендерится
+  /// отдельной секцией ([_abScanSection]) над этим блоком.
+  Widget _examReadings(bool canWrite) {
     final enabled = canWrite && _visitId != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -652,7 +740,17 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
           for (final (key, label) in _structureFields)
             _text(key, label, enabled),
         ]),
-        if (withAbScan) _abScanSection(canWrite),
+      ],
+    );
+  }
+
+  /// Колонка РЕШЕНИЕ ВРАЧА — заключение: диагноз/МКБ-10/рекомендации и кнопка
+  /// «Сохранить осмотр» (PUT всего бланка: показания + заключение).
+  Widget _examConclusion(bool canWrite) {
+    final enabled = canWrite && _visitId != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
         _section('Ташхис / Тавсия (заключение)', [
           if (enabled) _frequentDiagnosisChips(),
           _text('diagnosis', 'Ташхис (диагноз)', enabled, maxLines: 2),
@@ -663,25 +761,25 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
             enabled,
             maxLines: 2,
           ),
+          const SizedBox(height: 12),
+          if (canWrite)
+            FilledButton.icon(
+              onPressed: (_saving || _visitId == null) ? null : _save,
+              icon: _saving
+                  ? const SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.save_outlined),
+              label: const Text('Сохранить осмотр'),
+            )
+          else
+            const Text(
+              'Режим просмотра — нет права exams.write',
+              textAlign: TextAlign.center,
+            ),
         ]),
-        const SizedBox(height: 12),
-        if (canWrite)
-          FilledButton.icon(
-            onPressed: (_saving || _visitId == null) ? null : _save,
-            icon: _saving
-                ? const SizedBox(
-                    height: 16,
-                    width: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.save_outlined),
-            label: const Text('Сохранить осмотр'),
-          )
-        else
-          const Text(
-            'Режим просмотра — нет права exams.write',
-            textAlign: TextAlign.center,
-          ),
       ],
     );
   }
@@ -747,8 +845,8 @@ class _PatientCardScreenState extends ConsumerState<PatientCardScreen> {
     );
   }
 
-  /// Секция «Кўз A/B-скан текшеруви» — отдельным виджетом: на широких экранах
-  /// живёт в правой панели, на узких — внутри формы на прежнем месте.
+  /// Секция «Кўз A/B-скан текшеруви» (приборы/снимки + заключение) — живёт
+  /// в колонке ДИАГНОСТИКА над структурными показаниями осмотра.
   Widget _abScanSection(bool canWrite) {
     final enabled = canWrite && _visitId != null;
     return _section('Кўз A/B-скан текшеруви', [

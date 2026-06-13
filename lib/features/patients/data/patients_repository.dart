@@ -36,17 +36,47 @@ class PatientsRepository {
     }
   }
 
+  /// Создаёт пациента. На бэкенд (PatientCreate) уходит только то, что заполнено
+  /// или выбрано — пустые/нулевые поля опускаются, чтобы не слать `null`.
   Future<Patient> create({
     required String firstName,
     required String lastName,
+    String? middleName,
+    String? birthDate,
+    String? gender,
     String? phone,
+    String? phone2,
+    String? passport,
+    String? pinfl,
+    String? leadSource,
+    String? workplace,
+    String? profession,
+    String? address,
+    String? notes,
     String? branchId,
   }) async {
+    String? clean(String? v) {
+      if (v == null) return null;
+      final t = v.trim();
+      return t.isEmpty ? null : t;
+    }
+
     try {
       final resp = await _dio.post('/patients', data: {
         'first_name': firstName,
         'last_name': lastName,
-        if (phone != null && phone.isNotEmpty) 'phone': phone,
+        if (clean(middleName) != null) 'middle_name': clean(middleName),
+        if (clean(birthDate) != null) 'birth_date': clean(birthDate),
+        if (clean(gender) != null) 'gender': clean(gender),
+        if (clean(phone) != null) 'phone': clean(phone),
+        if (clean(phone2) != null) 'phone2': clean(phone2),
+        if (clean(address) != null) 'address': clean(address),
+        if (clean(passport) != null) 'passport': clean(passport),
+        if (clean(pinfl) != null) 'pinfl': clean(pinfl),
+        if (clean(leadSource) != null) 'lead_source': clean(leadSource),
+        if (clean(workplace) != null) 'workplace': clean(workplace),
+        if (clean(profession) != null) 'profession': clean(profession),
+        if (clean(notes) != null) 'notes': clean(notes),
         'branch_id': ?branchId,
       });
       return Patient.fromJson(resp.data as Map<String, dynamic>);

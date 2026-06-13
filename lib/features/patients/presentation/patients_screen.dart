@@ -155,11 +155,45 @@ class RegisterPatientDialog extends ConsumerStatefulWidget {
       _RegisterPatientDialogState();
 }
 
+/// Patient gender — wire value → RU label (mirrors backend `Gender`).
+const kGenderLabels = <String, String>{
+  'male': 'Мужской',
+  'female': 'Женский',
+  'other': 'Другой',
+};
+
+/// CRM lead source — wire value → RU label (mirrors backend `LeadSource`).
+/// Feeds the director's «Источники пациентов» analytics, so it's a first-class
+/// field on the registration form, not buried.
+const kLeadSourceLabels = <String, String>{
+  'instagram': 'Instagram',
+  'telegram': 'Telegram',
+  'google': 'Google',
+  'referral': 'Рекомендация',
+  'banner': 'Баннер',
+  'walk_in': 'Проходил мимо',
+  'other': 'Другое',
+};
+
 class _RegisterPatientDialogState extends ConsumerState<RegisterPatientDialog> {
   final _formKey = GlobalKey<FormState>();
+  // Basics (always visible).
   final _lastName = TextEditingController();
   final _firstName = TextEditingController();
+  final _middleName = TextEditingController();
   late final _phone = TextEditingController(text: widget.initialPhone ?? '');
+  DateTime? _birthDate;
+  String? _gender;
+  String? _leadSource;
+  // Advanced (collapsed — rarely used, must not slow the common path).
+  final _phone2 = TextEditingController();
+  final _address = TextEditingController();
+  final _passport = TextEditingController();
+  final _pinfl = TextEditingController();
+  final _workplace = TextEditingController();
+  final _profession = TextEditingController();
+  final _notes = TextEditingController();
+
   final _firstNameFocus = FocusNode();
   final _phoneFocus = FocusNode();
   bool _saving = false;
@@ -167,12 +201,33 @@ class _RegisterPatientDialogState extends ConsumerState<RegisterPatientDialog> {
 
   @override
   void dispose() {
-    _lastName.dispose();
-    _firstName.dispose();
-    _phone.dispose();
+    for (final c in [
+      _lastName, _firstName, _middleName, _phone, _phone2, _address,
+      _passport, _pinfl, _workplace, _profession, _notes,
+    ]) {
+      c.dispose();
+    }
     _firstNameFocus.dispose();
     _phoneFocus.dispose();
     super.dispose();
+  }
+
+  String? _ymd(DateTime? d) => d == null
+      ? null
+      : '${d.year.toString().padLeft(4, '0')}-'
+            '${d.month.toString().padLeft(2, '0')}-'
+            '${d.day.toString().padLeft(2, '0')}';
+
+  Future<void> _pickBirthDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _birthDate ?? DateTime(now.year - 30),
+      firstDate: DateTime(1900),
+      lastDate: now,
+      helpText: 'Дата рождения',
+    );
+    if (picked != null) setState(() => _birthDate = picked);
   }
 
   Future<void> _save() async {
@@ -188,7 +243,18 @@ class _RegisterPatientDialogState extends ConsumerState<RegisterPatientDialog> {
           .create(
             lastName: _lastName.text.trim(),
             firstName: _firstName.text.trim(),
-            phone: _phone.text.trim(),
+            middleName: _middleName.text,
+            birthDate: _ymd(_birthDate),
+            gender: _gender,
+            phone: _phone.text,
+            phone2: _phone2.text,
+            leadSource: _leadSource,
+            address: _address.text,
+            passport: _passport.text,
+            pinfl: _pinfl.text,
+            workplace: _workplace.text,
+            profession: _profession.text,
+            notes: _notes.text,
             branchId: branchId,
           );
       if (mounted) Navigator.of(context).pop(patient);
@@ -203,51 +269,166 @@ class _RegisterPatientDialogState extends ConsumerState<RegisterPatientDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Регистрация пациента'),
-      content: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Поток без мыши: фамилия → Enter → имя → Enter → телефон → Enter
-            // = сохранить.
-            TextFormField(
-              controller: _lastName,
-              autofocus: true,
-              textInputAction: TextInputAction.next,
-              onFieldSubmitted: (_) => _firstNameFocus.requestFocus(),
-              decoration: const InputDecoration(labelText: 'Фамилия'),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Обязательное поле' : null,
+      content: SizedBox(
+        width: 460,
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Поток без мыши на основных текстовых полях:
+                // фамилия → Enter → имя → Enter → телефон → Enter = сохранить.
+                TextFormField(
+                  controller: _lastName,
+                  autofocus: true,
+                  textInputAction: TextInputAction.next,
+                  onFieldSubmitted: (_) => _firstNameFocus.requestFocus(),
+                  decoration: const InputDecoration(labelText: 'Фамилия'),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Обязательное поле'
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _firstName,
+                  focusNode: _firstNameFocus,
+                  textInputAction: TextInputAction.next,
+                  onFieldSubmitted: (_) => _phoneFocus.requestFocus(),
+                  decoration: const InputDecoration(labelText: 'Имя'),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Обязательное поле'
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _middleName,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(labelText: 'Отчество'),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: _pickBirthDate,
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Дата рождения',
+                            suffixIcon: Icon(Icons.calendar_today, size: 18),
+                          ),
+                          child: Text(_ymd(_birthDate) ?? '—'),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _gender,
+                        decoration: const InputDecoration(labelText: 'Пол'),
+                        items: [
+                          for (final e in kGenderLabels.entries)
+                            DropdownMenuItem(value: e.key, child: Text(e.value)),
+                        ],
+                        onChanged: (v) => setState(() => _gender = v),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _phone,
+                  focusNode: _phoneFocus,
+                  keyboardType: TextInputType.phone,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _save(),
+                  decoration: const InputDecoration(
+                    labelText: 'Телефон (необязательно)',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: _leadSource,
+                  decoration: const InputDecoration(
+                    labelText: 'Источник клиента',
+                    helperText: 'Откуда пришёл пациент — для аналитики',
+                  ),
+                  items: [
+                    for (final e in kLeadSourceLabels.entries)
+                      DropdownMenuItem(value: e.key, child: Text(e.value)),
+                  ],
+                  onChanged: (v) => setState(() => _leadSource = v),
+                ),
+                const SizedBox(height: 4),
+                // Редко используемые поля — свёрнуты, чтобы не замедлять обычную
+                // регистрацию (SELF IMPROVEMENT MEDICAL MODE).
+                Theme(
+                  data: Theme.of(context)
+                      .copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    childrenPadding: const EdgeInsets.only(bottom: 8),
+                    title: const Text('Расширенные данные'),
+                    children: [
+                      TextFormField(
+                        controller: _phone2,
+                        keyboardType: TextInputType.phone,
+                        decoration: const InputDecoration(
+                          labelText: 'Дополнительный телефон',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _address,
+                        decoration: const InputDecoration(labelText: 'Адрес'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _passport,
+                        decoration: const InputDecoration(labelText: 'Паспорт'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _pinfl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(labelText: 'ПИНФЛ'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _workplace,
+                        decoration: const InputDecoration(
+                          labelText: 'Место работы',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _profession,
+                        decoration: const InputDecoration(
+                          labelText: 'Профессия',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _notes,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: 'Примечание',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _error!,
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
+                ],
+              ],
             ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _firstName,
-              focusNode: _firstNameFocus,
-              textInputAction: TextInputAction.next,
-              onFieldSubmitted: (_) => _phoneFocus.requestFocus(),
-              decoration: const InputDecoration(labelText: 'Имя'),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Обязательное поле' : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _phone,
-              focusNode: _phoneFocus,
-              keyboardType: TextInputType.phone,
-              textInputAction: TextInputAction.done,
-              onFieldSubmitted: (_) => _save(),
-              decoration: const InputDecoration(
-                labelText: 'Телефон (необязательно)',
-              ),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
       actions: [

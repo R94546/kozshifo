@@ -22,10 +22,18 @@ class Patient(UUIDPKMixin, TimestampMixin, Base):
     birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     gender: Mapped[str | None] = mapped_column(String(16), nullable=True)  # male | female | other
     phone: Mapped[str | None] = mapped_column(String(32), index=True, nullable=True)
+    phone2: Mapped[str | None] = mapped_column(String(32), nullable=True)  # secondary contact
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     address: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # Identity documents (Uzbekistan): passport series+number and ПИНФЛ (14 digits).
+    passport: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    pinfl: Mapped[str | None] = mapped_column(String(14), index=True, nullable=True)
+    # CRM: where the patient came from — feeds the director's lead-source analytics.
+    # instagram | telegram | google | referral | banner | walk_in | other
+    lead_source: Mapped[str | None] = mapped_column(String(16), index=True, nullable=True)
     # Form 025-8 cover (DOMAIN.md §2.1): place of work/study + dispensary follow-up.
     workplace: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    profession: Mapped[str | None] = mapped_column(String(128), nullable=True)
     dispensary_here: Mapped[str | None] = mapped_column(String(255), nullable=True)
     dispensary_other: Mapped[str | None] = mapped_column(String(255), nullable=True)
     notes: Mapped[str | None] = mapped_column(String(2000), nullable=True)

@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/async_value_widget.dart';
+import '../../auth/application/auth_controller.dart';
 import '../data/dashboard_repository.dart';
 import '../domain/dashboard_summary.dart';
 import '../domain/insight.dart';
+import '../domain/lead_source.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -22,6 +24,7 @@ class DashboardScreen extends ConsumerWidget {
             onPressed: () {
               ref.invalidate(dashboardSummaryProvider);
               ref.invalidate(insightsProvider);
+              ref.invalidate(leadSourcesProvider);
             },
             icon: const Icon(Icons.refresh),
           ),
@@ -34,6 +37,7 @@ class DashboardScreen extends ConsumerWidget {
           onRefresh: () async {
             ref.invalidate(dashboardSummaryProvider);
             ref.invalidate(insightsProvider);
+            ref.invalidate(leadSourcesProvider);
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -44,6 +48,7 @@ class DashboardScreen extends ConsumerWidget {
                 const _InsightsPanel(),
                 const SizedBox(height: 20),
                 _KpiGrid(data: data),
+                const _LeadSourcesPanel(),
               ],
             ),
           ),
@@ -180,6 +185,119 @@ class _KpiGrid extends StatelessWidget {
           children: cards,
         );
       },
+    );
+  }
+}
+
+/// «Источники пациентов» — откуда пришли пациенты за текущий месяц.
+/// Видно только директору (право `dashboard.view`). Чистые виджеты —
+/// горизонтальные полоски с количеством и долей, без chart-пакетов.
+class _LeadSourcesPanel extends ConsumerWidget {
+  const _LeadSourcesPanel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authControllerProvider).user;
+    if (!(user?.can('dashboard.view') ?? false)) {
+      return const SizedBox.shrink();
+    }
+    final report = ref.watch(leadSourcesProvider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 28),
+        Text('Источники пациентов',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
+        AsyncValueWidget<LeadSourceReport>(
+          value: report,
+          onRetry: () => ref.invalidate(leadSourcesProvider),
+          builder: (data) => Card(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: data.isEmpty
+                  ? const _LeadSourcesEmpty()
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final s in data.sources)
+                          _LeadSourceBar(stat: s, total: data.total),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LeadSourcesEmpty extends StatelessWidget {
+  const _LeadSourcesEmpty();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(Icons.insights_outlined,
+            color: scheme.onSurface.withValues(alpha: 0.5)),
+        const SizedBox(width: 12),
+        Text('Пока нет данных',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurface.withValues(alpha: 0.7))),
+      ],
+    );
+  }
+}
+
+/// Одна полоска канала: метка, доля (заливка), количество и процент.
+class _LeadSourceBar extends StatelessWidget {
+  const _LeadSourceBar({required this.stat, required this.total});
+
+  final LeadSourceStat stat;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final fraction = total <= 0 ? 0.0 : stat.count / total;
+    final percent = (fraction * 100).round();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(stat.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium),
+              ),
+              const SizedBox(width: 8),
+              Text('${formatInt(stat.count)} · $percent%',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface.withValues(alpha: 0.75))),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: fraction,
+              minHeight: 8,
+              backgroundColor: scheme.surfaceContainerHighest,
+              valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

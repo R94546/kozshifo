@@ -17,9 +17,9 @@ from __future__ import annotations
 import logging
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, Literal, get_args
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
@@ -40,6 +40,7 @@ from app.models.patient import Patient
 from app.models.payment import Payment
 from app.models.queue import QueueTicket
 from app.models.visit import Visit
+from app.schemas.patient import LeadSource
 
 logger = logging.getLogger(__name__)
 
@@ -174,6 +175,87 @@ def summary(db: Annotated[Session, Depends(get_db)]) -> DashboardSummary:
         low_stock_count=low_stock_count,
         expiring_soon_count=expiring_soon_count,
     )
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Lead-source analytics — where this period's patients came from (CRM channels).
+# ════════════════════════════════════════════════════════════════════════════
+
+# RU labels for every canonical channel + the synthetic "unknown" bucket (NULL
+# lead_source). Order here is the canonical channel order; the response is
+# re-sorted by count desc so the director sees the busiest channel first.
+_LEAD_SOURCE_LABELS: dict[str, str] = {
+    "instagram": "Instagram",
+    "telegram": "Telegram",
+    "google": "Google",
+    "referral": "Рекомендация",
+    "banner": "Баннер",
+    "walk_in": "Проходил мимо",
+    "other": "Другое",
+    "unknown": "Не указан",
+}
+# Synthetic bucket key for patients with no lead_source recorded.
+_UNKNOWN_SOURCE = "unknown"
+
+
+class LeadSourceCount(BaseModel):
+    source: str
+    label: str
+    count: int
+
+
+class LeadSourceReport(BaseModel):
+    total: int
+    sources: list[LeadSourceCount]
+
+
+@router.get("/lead-sources", response_model=LeadSourceReport,
+            dependencies=[Depends(require_permission("dashboard.view"))])
+def lead_sources(
+    db: Annotated[Session, Depends(get_db)],
+    date_from: date | None = Query(None, description="Local start date (inclusive)"),
+    date_to: date | None = Query(None, description="Local end date (inclusive)"),
+) -> LeadSourceReport:
+    """Patient counts per CRM lead-source channel over a LOCAL day range.
+
+    Default range is the current month-to-date. ``date_from`` alone means "that
+    day onward". Local dates are converted to UTC instants (Patient.created_at is
+    stored aware-UTC) so the window agrees with the rest of the dashboard on any
+    host timezone. Every canonical channel is always present (zero-count
+    included) plus an ``unknown`` bucket for patients with no lead_source.
+    """
+    if date_from and date_to and date_from > date_to:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            "date_from must be <= date_to")
+
+    # Resolve the [start, end) UTC instant window from the local date range.
+    if date_from is None and date_to is None:
+        start, end = local_month_bounds_utc(current_business_month())
+    else:
+        start = local_day_bounds_utc(date_from)[0] if date_from else None
+        # date_to is INCLUSIVE → end of that local day = start of the next day.
+        end = local_day_bounds_utc(date_to)[1] if date_to else None
+
+    stmt = select(Patient.lead_source, func.count()).group_by(Patient.lead_source)
+    if start is not None:
+        stmt = stmt.where(Patient.created_at >= start)
+    if end is not None:
+        stmt = stmt.where(Patient.created_at < end)
+
+    # NULL lead_source folds into the synthetic "unknown" bucket.
+    counts: dict[str, int] = {}
+    for source, count in db.execute(stmt).all():
+        key = source if source else _UNKNOWN_SOURCE
+        counts[key] = counts.get(key, 0) + count
+
+    # Canonical channels (always shown, zeros included) + unknown bucket.
+    keys = list(get_args(LeadSource)) + [_UNKNOWN_SOURCE]
+    sources = [
+        LeadSourceCount(source=k, label=_LEAD_SOURCE_LABELS[k], count=counts.get(k, 0))
+        for k in keys
+    ]
+    sources.sort(key=lambda s: s.count, reverse=True)
+    return LeadSourceReport(total=sum(s.count for s in sources), sources=sources)
 
 
 # ════════════════════════════════════════════════════════════════════════════

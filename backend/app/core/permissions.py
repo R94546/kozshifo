@@ -85,6 +85,14 @@ PERMISSIONS: list[tuple[str, str, str]] = [
 ALL_CODES: list[str] = [code for code, _, _ in PERMISSIONS]
 
 # Starter roles (seed data only). Director is also flagged superuser at the user level.
+#
+# THE 3 PRIMARY ROLES a small clinic logs in as are Director / Reception / Doctor.
+# Per the owner's model, the front desk (Reception) ALSO runs the till and the
+# warehouse — one person registers, takes payment, does purchasing/stocktake and
+# prints documents. Money REVERSALS (payments.refund), clinical authoring
+# (exams.write, operations.*), and any delete stay OUT of Reception.
+# Cashier / Warehouse below remain as optional narrower roles the director can
+# assign when a larger clinic splits these duties (RBAC is fully dynamic).
 ROLE_TEMPLATES: dict[str, list[str]] = {
     "Director": ALL_CODES,
     "Reception": [
@@ -92,9 +100,14 @@ ROLE_TEMPLATES: dict[str, list[str]] = {
         "visits.read", "visits.create", "visits.update",
         "payments.read", "payments.create",
         "queue.read", "queue.manage",
+        # warehouse + purchasing + stocktake (front desk owns the store)
+        "inventory.read", "inventory.manage", "inventory.write_off",
+        # expenses (rashod)
+        "expenses.read", "expenses.manage",
         "services.read", "branches.read",
         "exams.read",
         "operations.read", "treatments.read",
+        "devices.read", "notifications.read",
     ],
     "Cashier": [
         "patients.read", "visits.read",
