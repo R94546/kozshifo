@@ -127,6 +127,9 @@ def test_punch_auto_toggles_in_then_out(client, auth, faceid_key):
     assert page["total"] == 3
     stamps = [e["occurred_at"] for e in page["items"]]
     assert stamps == sorted(stamps, reverse=True)
+    # occurred_at must carry a UTC offset (UTCDateTime) so the journal tab can
+    # .toLocal() — otherwise SQLite returns it naive and times show 5h early.
+    assert all(s.endswith("Z") or "+00:00" in s for s in stamps), stamps
 
 
 # --------------------------------------------------------------- manual + RBAC

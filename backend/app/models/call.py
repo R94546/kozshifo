@@ -9,10 +9,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Uuid
+from sqlalchemy import ForeignKey, Integer, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.types import UTCDateTime
 from app.models.base import TimestampMixin, UUIDPKMixin
 
 
@@ -23,7 +24,7 @@ class CallRecord(UUIDPKMixin, TimestampMixin, Base):
     phone: Mapped[str] = mapped_column(String(32), nullable=False)
     phone_normalized: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
     started_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), index=True, nullable=False
+        UTCDateTime, index=True, nullable=False
     )
     duration_seconds: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     recording_url: Mapped[str | None] = mapped_column(String(512), nullable=True)

@@ -154,6 +154,38 @@ def test_discount_validation_422(client, auth):
     assert refreshed["discount_amount"] is None
 
 
+def test_discount_amount_cannot_exceed_total(client, auth):
+    """A fixed amount larger than the bill is rejected — otherwise the excess
+    lies dormant and silently makes services added later free."""
+    _, visit = _make_visit(client, auth, last_name="СкидкаПревышение")
+    total = Decimal(visit["total_amount"])
+    resp = client.post(f"{API}/visits/{visit['id']}/discount", headers=auth,
+                       json={"discount_amount": str(total + Decimal("1")),
+                             "discount_reason": "Опечатка"})
+    assert resp.status_code == 422, resp.text
+    refreshed = client.get(f"{API}/visits/{visit['id']}", headers=auth).json()
+    assert refreshed["discount_amount"] is None  # nothing stored
+
+
+def test_full_discount_settles_visit_and_enters_journey(client, auth):
+    """A 100% discount leaves nothing to pay; the visit must still enter the
+    journey (items paid, flow advanced, ticket minted) instead of stranding."""
+    branch_id, visit = _make_visit(client, auth, last_name="СкидкаБесплатно")
+    resp = client.post(f"{API}/visits/{visit['id']}/discount", headers=auth,
+                       json={"discount_percent": "100", "discount_reason": "Сотрудник"})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert Decimal(body["payable"]) == Decimal("0.00")
+    assert Decimal(body["balance"]) <= Decimal("0.00")
+    assert body["flow_status"] == "waiting_diagnostic"
+    assert all(it["status"] == "paid" for it in body["items"])
+    # A diagnostic ticket was minted for the free visit.
+    tickets = client.get(f"{API}/queue", headers=auth,
+                         params={"branch_id": branch_id, "track": "diagnostic"}).json()
+    assert any(t["visit_id"] == visit["id"] for t in tickets)
+    _park_visit_tickets(client, auth, branch_id, visit["id"])  # order-independence
+
+
 def test_discount_on_closed_or_cancelled_visit_409(client, auth):
     _, closed = _make_visit(client, auth, last_name="СкидкаЗакрыт")
     assert client.post(f"{API}/visits/{closed['id']}/close", headers=auth).status_code == 200

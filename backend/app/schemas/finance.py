@@ -49,9 +49,10 @@ class PayrollRow(BaseModel):
     full_name: str
     salary_percent: Decimal
     revenue: Decimal  # completed payments of the month on visits where they are the doctor
-    salary: Decimal  # revenue * salary_percent / 100, 0.01-quantized
+    salary: Decimal  # revenue * salary_percent / 100, 0.01-quantized (live, recomputed)
     paid: bool  # a payout Expense(kind="payroll") exists for this month
     paid_at: datetime | None
+    paid_amount: Decimal | None  # amount actually booked at payout (frozen); None if unpaid
 
 
 class PayrollPayoutIn(BaseModel):

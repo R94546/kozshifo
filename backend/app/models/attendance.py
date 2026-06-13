@@ -9,10 +9,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Uuid
+from sqlalchemy import ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.types import UTCDateTime
 from app.models.base import TimestampMixin, UUIDPKMixin
 
 
@@ -27,7 +28,7 @@ class AttendanceEvent(UUIDPKMixin, TimestampMixin, Base):
     )
     direction: Mapped[str] = mapped_column(String(8), nullable=False)  # in | out
     occurred_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), index=True, nullable=False
+        UTCDateTime, index=True, nullable=False
     )
     source: Mapped[str] = mapped_column(String(16), default="manual", nullable=False)  # faceid|manual
     note: Mapped[str | None] = mapped_column(String(255), nullable=True)

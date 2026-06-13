@@ -14,7 +14,7 @@ from app.core.audit import record_audit
 from app.core.database import get_db
 from app.core.deps import CurrentUser, require_permission
 from app.core.flow import advance_flow
-from app.core.sequences import next_visit_no
+from app.core.sequences import next_ticket_number, next_visit_no
 from app.models.branch import Branch
 from app.models.catalog import Service
 from app.models.patient import Patient
@@ -162,13 +162,21 @@ def apply_discount(
         visit.discount_amount = None
         visit.discount_reason = None
     else:
-        # Guard: the new payable must not drop below what is already paid,
-        # otherwise the visit silently becomes overpaid.
         total = Decimal(visit.total_amount)
+        # A fixed-amount discount may not exceed the bill — an amount larger than
+        # the total would lie dormant and silently absorb services added later,
+        # making them free. (A 100% discount uses discount_percent instead.)
+        if payload.discount_amount is not None and Decimal(payload.discount_amount) > total:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f"Discount amount {payload.discount_amount} exceeds visit total {total}",
+            )
         if payload.discount_percent is not None:
             new_value = (total * payload.discount_percent / Decimal("100")).quantize(Decimal("0.01"))
         else:
-            new_value = min(Decimal(payload.discount_amount), total)
+            new_value = Decimal(payload.discount_amount)
+        # Guard: the new payable must not drop below what is already paid,
+        # otherwise the visit silently becomes overpaid.
         if total - new_value < Decimal(visit.paid_amount):
             raise HTTPException(status.HTTP_409_CONFLICT,
                                 "Discount would drop payable below the amount already paid — refund first")
@@ -176,11 +184,48 @@ def apply_discount(
         visit.discount_amount = payload.discount_amount
         visit.discount_reason = (payload.discount_reason or "").strip()
 
+    # A discount that fully covers the bill leaves nothing to pay, so a payment
+    # (which the journey relies on to start) can never be taken. Settle the
+    # visit here the same way a full payment would: items -> paid, advance the
+    # flow, and mint a diagnostic ticket — otherwise a free visit is stranded.
+    ticket_number: str | None = None
+    if not payload.clear and visit.balance <= Decimal("0.00"):
+        for item in visit.items:
+            if item.status == "ordered":
+                item.status = "paid"
+        advance_flow(db, visit, "paid_in_full")  # workflow engine (same transaction)
+        if payload.issue_queue_ticket and visit.flow_status == "waiting_diagnostic":
+            existing = db.execute(
+                select(QueueTicket).where(
+                    QueueTicket.visit_id == visit.id,
+                    QueueTicket.status.in_(("waiting", "called", "serving")),
+                ).limit(1)
+            ).scalar_one_or_none()
+            if existing is not None:
+                ticket_number = existing.ticket_number
+            else:
+                ticket = QueueTicket(
+                    ticket_number=next_ticket_number(db, visit.branch_id, "diagnostic"),
+                    track="diagnostic",
+                    patient_id=visit.patient_id,
+                    branch_id=visit.branch_id,
+                    visit_id=visit.id,
+                    room=payload.room,
+                )
+                db.add(ticket)
+                db.flush()
+                ticket_number = ticket.ticket_number
+                record_audit(db, action="create", entity_type="queue_ticket", entity_id=ticket.id,
+                             actor_id=actor.id, branch_id=visit.branch_id,
+                             summary=f"Issued queue ticket {ticket_number} (free visit, full discount)")
+
     action = "discount_clear" if payload.clear else "discount"
+    summary = (f"{'Cleared' if payload.clear else 'Applied'} discount on visit "
+               f"{visit.visit_no} (payable {visit.payable})")
+    if ticket_number is not None:
+        summary += f" — settled free, ticket {ticket_number}"
     record_audit(db, action=action, entity_type="visit", entity_id=visit.id, actor_id=actor.id,
-                 branch_id=visit.branch_id,
-                 summary=(f"{'Cleared' if payload.clear else 'Applied'} discount on visit "
-                          f"{visit.visit_no} (payable {visit.payable})"),
+                 branch_id=visit.branch_id, summary=summary,
                  changes={"before": before, "after": _discount_snapshot(visit)})
     db.commit()
     db.refresh(visit)

@@ -49,7 +49,11 @@ def _require_pbx_key(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "PBX integration is disabled (pbx_api_key is not configured)",
         )
-    if x_pbx_key is None or not secrets.compare_digest(x_pbx_key, settings.pbx_api_key):
+    # compare_digest raises TypeError on non-ASCII str (FastAPI latin-1-decodes
+    # headers) → encode both sides so a junk key returns 401, not a 500.
+    if x_pbx_key is None or not secrets.compare_digest(
+        x_pbx_key.encode(), settings.pbx_api_key.encode()
+    ):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid PBX key")
 
 

@@ -317,9 +317,12 @@ def insights(db: Annotated[Session, Depends(get_db)]) -> list[InsightOut]:
 
     # ── unpaid_balance (info): outstanding money over open visits.
     #    Due = payable (total minus reception discount), mirroring Visit.payable.
+    # Mirror Visit.discount_value exactly: the percent branch quantizes to 0.01
+    # (func.round) so SQL payable matches the Python source of truth and a
+    # fully-paid discounted visit isn't reported as a fractional-cent debt.
     _discount = case(
         (Visit.discount_percent.is_not(None),
-         Visit.total_amount * Visit.discount_percent / 100),
+         func.round(Visit.total_amount * Visit.discount_percent / 100, 2)),
         (Visit.discount_amount.is_not(None),
          case((Visit.discount_amount > Visit.total_amount, Visit.total_amount),
               else_=Visit.discount_amount)),

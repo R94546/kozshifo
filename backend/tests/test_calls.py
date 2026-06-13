@@ -41,6 +41,28 @@ def _make_patient(client, auth, **overrides) -> dict:
     return resp.json()
 
 
+def test_ingest_non_ascii_key_returns_401_not_500(client, pbx_key):
+    """A non-ASCII X-PBX-Key must 401, not crash compare_digest with a 500.
+
+    Sent as raw bytes — that's how a junk key reaches Starlette, which
+    latin-1-decodes header bytes into a non-ASCII str that the naive
+    ``compare_digest(str, str)`` would choke on (TypeError → 500)."""
+    resp = client.post(
+        f"{API}/calls/ingest", json=_ingest_body(),
+        headers={"X-PBX-Key": b"\x6b\xe9\x79"},  # b"key" with a non-ASCII middle byte
+    )
+    assert resp.status_code == 401, resp.text
+
+
+def test_call_started_at_serializes_with_utc_offset(client, auth, pbx_key):
+    """started_at must carry a timezone offset so the Flutter journal can .toLocal()."""
+    client.post(f"{API}/calls/ingest", json=_ingest_body(), headers={"X-PBX-Key": PBX_KEY})
+    rows = client.get(f"{API}/calls", headers=auth).json()["items"]
+    assert rows, "expected at least one call"
+    started = rows[0]["started_at"]
+    assert started.endswith("Z") or "+00:00" in started, started
+
+
 # ---------------------------------------------------------------- ingest gate
 
 def test_ingest_503_when_key_unset(client, monkeypatch):

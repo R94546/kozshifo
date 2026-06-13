@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import csv
 import io
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Annotated, Iterable, Sequence
 from uuid import UUID
@@ -39,7 +39,12 @@ from sqlalchemy.orm import Session
 
 from app.core.audit import record_audit
 from app.core.database import get_db
-from app.core.dates import business_today
+from app.core.dates import (
+    business_today,
+    current_business_month,
+    local_day_bounds_utc,
+    local_month_bounds_utc,
+)
 from app.core.deps import CurrentUser, require_permission
 from app.models.branch import Branch
 from app.models.finance import Expense
@@ -69,19 +74,15 @@ def _q2(value) -> Decimal:
     return Decimal(value).quantize(_TWO_PLACES)
 
 
+# Payment timestamps are UTC; a clinic day/month is local. Convert the local
+# calendar window to its UTC instant window so a day's takings reconcile with
+# that day's expenses (which are filtered on a local DATE).
 def _day_bounds(d: date) -> tuple[datetime, datetime]:
-    start = datetime(d.year, d.month, d.day, tzinfo=timezone.utc)
-    return start, start + timedelta(days=1)
+    return local_day_bounds_utc(d)
 
 
 def _month_bounds(month: str) -> tuple[datetime, datetime]:
-    year, mon = int(month[:4]), int(month[5:7])
-    start = datetime(year, mon, 1, tzinfo=timezone.utc)
-    if mon == 12:
-        end = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
-    else:
-        end = datetime(year, mon + 1, 1, tzinfo=timezone.utc)
-    return start, end
+    return local_month_bounds_utc(month)
 
 
 def _expense_out(expense: Expense, created_by_name: str | None) -> ExpenseOut:
@@ -287,6 +288,10 @@ def _payroll_rows(db: Session, month: str) -> list[PayrollRow]:
             salary=_q2(revenue * percent / 100),
             paid=payout is not None,
             paid_at=payout.created_at if payout is not None else None,
+            # The amount actually booked at payout time — may differ from the
+            # live `salary` if revenue moved (new payments / a refund) after the
+            # payout. Showing both makes a divergence visible instead of silent.
+            paid_amount=_q2(payout.amount) if payout is not None else None,
         ))
     return rows
 
@@ -317,6 +322,16 @@ def payroll_payout(
     db: Annotated[Session, Depends(get_db)],
     actor: Annotated[CurrentUser, Depends(require_permission("payroll.manage"))],
 ) -> ExpenseOut:
+    # Only pay out a CLOSED month: revenue keeps growing until month-end, so a
+    # mid-month payout would freeze salary at revenue-so-far and (being capped
+    # by the unique constraint) leave the remainder unpayable. Corrections to a
+    # closed month go through /payroll/void → re-payout.
+    if payload.month >= current_business_month():
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Month is not closed yet — payroll can only be paid out for a finished month",
+        )
+
     user = db.get(User, payload.user_id)
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
@@ -376,6 +391,43 @@ def payroll_payout(
     db.commit()
     db.refresh(expense)
     return _expense_out(expense, actor.full_name)
+
+
+@router.post("/payroll/void", response_model=Message)
+def payroll_void(
+    payload: PayrollPayoutIn,
+    db: Annotated[Session, Depends(get_db)],
+    actor: Annotated[CurrentUser, Depends(require_permission("payroll.manage"))],
+) -> Message:
+    """Reverse a payroll payout so it can be corrected and re-issued.
+
+    The unique (user, month) constraint makes a payout idempotent; this is the
+    only way to undo a wrong one (e.g. paid before a refund landed) — it deletes
+    the payroll Expense, freeing the slot for a fresh payout. Audited with the
+    voided snapshot.
+    """
+    expense = db.execute(
+        select(Expense).where(
+            Expense.kind == "payroll",
+            Expense.payroll_user_id == payload.user_id,
+            Expense.payroll_month == payload.month,
+        )
+    ).scalar_one_or_none()
+    if expense is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND,
+                            f"No payroll payout found for {payload.month}")
+    snapshot = {
+        "payroll_user_id": str(expense.payroll_user_id),
+        "payroll_month": expense.payroll_month,
+        "amount": str(expense.amount),
+        "expense_date": expense.expense_date.isoformat(),
+    }
+    record_audit(db, action="payout_void", entity_type="expense", entity_id=expense.id,
+                 actor_id=actor.id, branch_id=expense.branch_id, changes=snapshot,
+                 summary=f"Voided payroll payout {expense.amount} for {payload.month}")
+    db.delete(expense)
+    db.commit()
+    return Message(detail="Payroll payout voided")
 
 
 # ════════════════════════════════════════════════════════════════════════════

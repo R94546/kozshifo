@@ -25,6 +25,11 @@ class VisitDiscountApply(BaseModel):
     discount_amount: Decimal | None = Field(None, gt=Decimal("0"))
     discount_reason: str | None = Field(None, max_length=128)
     clear: bool = False
+    # When a discount fully covers the bill (nothing left to pay), settle the
+    # visit like a full payment would: mint a diagnostic queue ticket. Mirrors
+    # PaymentCreate so a 100%-discount (free) visit still enters the journey.
+    issue_queue_ticket: bool = True
+    room: str | None = Field(None, max_length=32)
 
     @model_validator(mode="after")
     def _exactly_one_kind(self) -> "VisitDiscountApply":

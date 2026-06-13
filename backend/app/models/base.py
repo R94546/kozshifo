@@ -4,8 +4,10 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Uuid, func
+from sqlalchemy import Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
+
+from app.core.types import UTCDateTime
 
 
 class UUIDPKMixin:
@@ -14,8 +16,8 @@ class UUIDPKMixin:
 
 class TimestampMixin:
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        UTCDateTime, server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+        UTCDateTime, server_default=func.now(), onupdate=func.now(), nullable=False
     )

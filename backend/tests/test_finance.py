@@ -149,11 +149,47 @@ def test_payroll_math_through_the_api(client, auth):
     assert client.get(_PAYROLL, headers=auth, params={"month": "junk"}).status_code == 422
 
 
+def _backdate_payment_to_closed_month(payment_id: str) -> tuple[str, str]:
+    """Move a payment into the previous (closed) month and return (month, day).
+
+    Payroll can only be paid out for a finished month, so a test that exercises
+    a payout must first put revenue in a closed month — payments are created
+    "now" by the API. Returns the YYYY-MM month key and YYYY-MM-DD day.
+    """
+    import datetime as _dt
+    import uuid as _uuid
+
+    from app.core.database import SessionLocal
+    from app.models.payment import Payment as _Payment
+
+    today = _dt.date.today()
+    first_of_month = today.replace(day=1)
+    prev = first_of_month - _dt.timedelta(days=1)  # a day in the previous month
+    # 15th at noon UTC stays inside the local month for any realistic offset.
+    when = _dt.datetime(prev.year, prev.month, 15, 12, 0, tzinfo=_dt.timezone.utc)
+    session = SessionLocal()
+    try:
+        payment = session.get(_Payment, _uuid.UUID(payment_id))
+        payment.created_at = when
+        session.commit()
+    finally:
+        session.close()
+    return f"{prev.year:04d}-{prev.month:02d}", when.date().isoformat()
+
+
 def test_payroll_payout_flow(client, auth):
     doctor = _make_doctor(client, auth, "fin.payout@kozshifo.uz", salary_percent="25")
     _, payment = _paid_visit(client, auth, doctor_id=doctor["id"])
-    month = payment["created_at"][:7]
+    current_month = payment["created_at"][:7]
 
+    # The current month is not closed yet — paying it out is rejected (409), so a
+    # mid-month payout can't freeze salary at revenue-so-far.
+    open_payout = client.post(f"{_PAYROLL}/payout", headers=auth,
+                              json={"user_id": doctor["id"], "month": current_month})
+    assert open_payout.status_code == 409, open_payout.text
+
+    # Move the revenue into the previous (closed) month and pay THAT out.
+    month, _ = _backdate_payment_to_closed_month(payment["id"])
     payout = client.post(f"{_PAYROLL}/payout", headers=auth,
                          json={"user_id": doctor["id"], "month": month})
     assert payout.status_code == 201, payout.text
@@ -165,11 +201,12 @@ def test_payroll_payout_flow(client, auth):
     assert expense["payroll_month"] == month
     assert "25" in expense["note"] and month in expense["note"]
 
-    # Payroll now shows the row as paid.
+    # Payroll now shows the row as paid, with the frozen booked amount.
     row = next(r for r in client.get(_PAYROLL, headers=auth, params={"month": month}).json()
                if r["user_id"] == doctor["id"])
     assert row["paid"] is True
     assert row["paid_at"] is not None
+    assert row["paid_amount"] == "37500.00"
 
     # Idempotency: the unique (user, month) constraint turns a repeat into 409.
     again = client.post(f"{_PAYROLL}/payout", headers=auth,
@@ -186,7 +223,19 @@ def test_payroll_payout_flow(client, auth):
     monthly = client.get(f"{_REPORTS}/monthly", headers=auth, params={"month": d[:7]}).json()
     assert Decimal(monthly["payroll_total"]) >= Decimal("37500.00")
 
-    # payroll.read does not grant payouts: the seeded Cashier can read…
+    # Correction path: void the payout, then it can be paid out again.
+    void = client.post(f"{_PAYROLL}/void", headers=auth,
+                       json={"user_id": doctor["id"], "month": month})
+    assert void.status_code == 200, void.text
+    assert client.get(_PAYROLL, headers=auth, params={"month": month}).json()
+    repaid = client.post(f"{_PAYROLL}/payout", headers=auth,
+                         json={"user_id": doctor["id"], "month": month})
+    assert repaid.status_code == 201, repaid.text
+    # Voiding a month with no payout is a 404.
+    assert client.post(f"{_PAYROLL}/void", headers=auth,
+                       json={"user_id": doctor["id"], "month": "2019-01"}).status_code == 404
+
+    # payroll.read does not grant payouts/voids: the seeded Cashier can read…
     kassa = _login(client, "kassa@kozshifo.uz", "Kassa!2026")
     assert client.get(_PAYROLL, headers=kassa, params={"month": month}).status_code == 200
     # …but not pay out (payroll.manage missing).

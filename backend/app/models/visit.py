@@ -9,10 +9,11 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Uuid, func
+from sqlalchemy import ForeignKey, Integer, Numeric, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.types import UTCDateTime
 from app.models.base import TimestampMixin, UUIDPKMixin
 
 
@@ -50,9 +51,9 @@ class Visit(UUIDPKMixin, TimestampMixin, Base):
     discount_reason: Mapped[str | None] = mapped_column(String(128), nullable=True)
     notes: Mapped[str | None] = mapped_column(String(2000), nullable=True)
     opened_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        UTCDateTime, server_default=func.now(), nullable=False
     )
-    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    closed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
     patient: Mapped["Patient"] = relationship(lazy="joined")  # noqa: F821
     items: Mapped[list["VisitItem"]] = relationship(
