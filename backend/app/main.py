@@ -8,6 +8,7 @@ from uuid import UUID
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import IntegrityError
 
 from app import __version__
@@ -17,6 +18,11 @@ from app.core.database import create_all
 from app.seed import run_seed
 
 _STATIC_DIR = Path(__file__).parent / "static"
+# Compiled Flutter web app (repo `build/web`), if present. When it exists the
+# backend serves the whole client itself, so the clinic LAN has a single URL
+# (http://<server-ip>:8000) for both the UI and the API — same origin, no CORS,
+# and reachable from any device on the network including the TV board.
+_WEB_DIR = Path(__file__).resolve().parents[2] / "build" / "web"
 
 
 @asynccontextmanager
@@ -89,6 +95,15 @@ def create_app() -> FastAPI:
         return HTMLResponse(html)
 
     app.include_router(api_router, prefix=settings.api_prefix)
+
+    # Serve the Flutter web client at the root. Mounted LAST so the API,
+    # /health, /tv and the auto-docs routes (registered above) always win;
+    # the static mount only catches everything else. `html=True` serves
+    # index.html at "/" — the client uses hash routing, so the server only
+    # ever sees "/" and no SPA path fallback is needed.
+    if _WEB_DIR.is_dir():
+        app.mount("/", StaticFiles(directory=str(_WEB_DIR), html=True), name="web")
+
     return app
 
 

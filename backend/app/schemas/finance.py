@@ -81,5 +81,7 @@ class DailyReport(CashReport):
 
 class MonthlyReport(CashReport):
     month: str
-    # Informational subset of expense_total: payroll-kind expenses of the month.
-    payroll_total: Decimal
+    # Isolated payroll spend (subset of expense_total). NULL for callers without
+    # payroll.read — the cash report itself only needs expenses.read, but the
+    # salary figure stays behind the payroll wall.
+    payroll_total: Decimal | None

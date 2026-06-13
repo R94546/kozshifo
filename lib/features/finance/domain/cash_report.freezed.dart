@@ -303,7 +303,9 @@ as String,
 mixin _$MonthlyReport {
 
  String get month;// YYYY-MM
- Map<String, String> get incomeByMethod; String get incomeTotal; String get refundTotal; String get expenseTotal; String get net; String get payrollTotal;
+ Map<String, String> get incomeByMethod; String get incomeTotal; String get refundTotal; String get expenseTotal; String get net;// Null for callers without payroll.read — the salary figure is walled off
+// even though the rest of the cash report needs only expenses.read.
+ String? get payrollTotal;
 /// Create a copy of MonthlyReport
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -336,7 +338,7 @@ abstract mixin class $MonthlyReportCopyWith<$Res>  {
   factory $MonthlyReportCopyWith(MonthlyReport value, $Res Function(MonthlyReport) _then) = _$MonthlyReportCopyWithImpl;
 @useResult
 $Res call({
- String month, Map<String, String> incomeByMethod, String incomeTotal, String refundTotal, String expenseTotal, String net, String payrollTotal
+ String month, Map<String, String> incomeByMethod, String incomeTotal, String refundTotal, String expenseTotal, String net, String? payrollTotal
 });
 
 
@@ -353,7 +355,7 @@ class _$MonthlyReportCopyWithImpl<$Res>
 
 /// Create a copy of MonthlyReport
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? month = null,Object? incomeByMethod = null,Object? incomeTotal = null,Object? refundTotal = null,Object? expenseTotal = null,Object? net = null,Object? payrollTotal = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? month = null,Object? incomeByMethod = null,Object? incomeTotal = null,Object? refundTotal = null,Object? expenseTotal = null,Object? net = null,Object? payrollTotal = freezed,}) {
   return _then(_self.copyWith(
 month: null == month ? _self.month : month // ignore: cast_nullable_to_non_nullable
 as String,incomeByMethod: null == incomeByMethod ? _self.incomeByMethod : incomeByMethod // ignore: cast_nullable_to_non_nullable
@@ -361,8 +363,8 @@ as Map<String, String>,incomeTotal: null == incomeTotal ? _self.incomeTotal : in
 as String,refundTotal: null == refundTotal ? _self.refundTotal : refundTotal // ignore: cast_nullable_to_non_nullable
 as String,expenseTotal: null == expenseTotal ? _self.expenseTotal : expenseTotal // ignore: cast_nullable_to_non_nullable
 as String,net: null == net ? _self.net : net // ignore: cast_nullable_to_non_nullable
-as String,payrollTotal: null == payrollTotal ? _self.payrollTotal : payrollTotal // ignore: cast_nullable_to_non_nullable
-as String,
+as String,payrollTotal: freezed == payrollTotal ? _self.payrollTotal : payrollTotal // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -447,7 +449,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String month,  Map<String, String> incomeByMethod,  String incomeTotal,  String refundTotal,  String expenseTotal,  String net,  String payrollTotal)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String month,  Map<String, String> incomeByMethod,  String incomeTotal,  String refundTotal,  String expenseTotal,  String net,  String? payrollTotal)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MonthlyReport() when $default != null:
 return $default(_that.month,_that.incomeByMethod,_that.incomeTotal,_that.refundTotal,_that.expenseTotal,_that.net,_that.payrollTotal);case _:
@@ -468,7 +470,7 @@ return $default(_that.month,_that.incomeByMethod,_that.incomeTotal,_that.refundT
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String month,  Map<String, String> incomeByMethod,  String incomeTotal,  String refundTotal,  String expenseTotal,  String net,  String payrollTotal)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String month,  Map<String, String> incomeByMethod,  String incomeTotal,  String refundTotal,  String expenseTotal,  String net,  String? payrollTotal)  $default,) {final _that = this;
 switch (_that) {
 case _MonthlyReport():
 return $default(_that.month,_that.incomeByMethod,_that.incomeTotal,_that.refundTotal,_that.expenseTotal,_that.net,_that.payrollTotal);case _:
@@ -488,7 +490,7 @@ return $default(_that.month,_that.incomeByMethod,_that.incomeTotal,_that.refundT
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String month,  Map<String, String> incomeByMethod,  String incomeTotal,  String refundTotal,  String expenseTotal,  String net,  String payrollTotal)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String month,  Map<String, String> incomeByMethod,  String incomeTotal,  String refundTotal,  String expenseTotal,  String net,  String? payrollTotal)?  $default,) {final _that = this;
 switch (_that) {
 case _MonthlyReport() when $default != null:
 return $default(_that.month,_that.incomeByMethod,_that.incomeTotal,_that.refundTotal,_that.expenseTotal,_that.net,_that.payrollTotal);case _:
@@ -503,7 +505,7 @@ return $default(_that.month,_that.incomeByMethod,_that.incomeTotal,_that.refundT
 @JsonSerializable()
 
 class _MonthlyReport implements MonthlyReport {
-  const _MonthlyReport({required this.month, required final  Map<String, String> incomeByMethod, required this.incomeTotal, required this.refundTotal, required this.expenseTotal, required this.net, required this.payrollTotal}): _incomeByMethod = incomeByMethod;
+  const _MonthlyReport({required this.month, required final  Map<String, String> incomeByMethod, required this.incomeTotal, required this.refundTotal, required this.expenseTotal, required this.net, this.payrollTotal}): _incomeByMethod = incomeByMethod;
   factory _MonthlyReport.fromJson(Map<String, dynamic> json) => _$MonthlyReportFromJson(json);
 
 @override final  String month;
@@ -520,7 +522,9 @@ class _MonthlyReport implements MonthlyReport {
 @override final  String refundTotal;
 @override final  String expenseTotal;
 @override final  String net;
-@override final  String payrollTotal;
+// Null for callers without payroll.read — the salary figure is walled off
+// even though the rest of the cash report needs only expenses.read.
+@override final  String? payrollTotal;
 
 /// Create a copy of MonthlyReport
 /// with the given fields replaced by the non-null parameter values.
@@ -555,7 +559,7 @@ abstract mixin class _$MonthlyReportCopyWith<$Res> implements $MonthlyReportCopy
   factory _$MonthlyReportCopyWith(_MonthlyReport value, $Res Function(_MonthlyReport) _then) = __$MonthlyReportCopyWithImpl;
 @override @useResult
 $Res call({
- String month, Map<String, String> incomeByMethod, String incomeTotal, String refundTotal, String expenseTotal, String net, String payrollTotal
+ String month, Map<String, String> incomeByMethod, String incomeTotal, String refundTotal, String expenseTotal, String net, String? payrollTotal
 });
 
 
@@ -572,7 +576,7 @@ class __$MonthlyReportCopyWithImpl<$Res>
 
 /// Create a copy of MonthlyReport
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? month = null,Object? incomeByMethod = null,Object? incomeTotal = null,Object? refundTotal = null,Object? expenseTotal = null,Object? net = null,Object? payrollTotal = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? month = null,Object? incomeByMethod = null,Object? incomeTotal = null,Object? refundTotal = null,Object? expenseTotal = null,Object? net = null,Object? payrollTotal = freezed,}) {
   return _then(_MonthlyReport(
 month: null == month ? _self.month : month // ignore: cast_nullable_to_non_nullable
 as String,incomeByMethod: null == incomeByMethod ? _self._incomeByMethod : incomeByMethod // ignore: cast_nullable_to_non_nullable
@@ -580,8 +584,8 @@ as Map<String, String>,incomeTotal: null == incomeTotal ? _self.incomeTotal : in
 as String,refundTotal: null == refundTotal ? _self.refundTotal : refundTotal // ignore: cast_nullable_to_non_nullable
 as String,expenseTotal: null == expenseTotal ? _self.expenseTotal : expenseTotal // ignore: cast_nullable_to_non_nullable
 as String,net: null == net ? _self.net : net // ignore: cast_nullable_to_non_nullable
-as String,payrollTotal: null == payrollTotal ? _self.payrollTotal : payrollTotal // ignore: cast_nullable_to_non_nullable
-as String,
+as String,payrollTotal: freezed == payrollTotal ? _self.payrollTotal : payrollTotal // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

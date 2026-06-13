@@ -542,14 +542,20 @@ def monthly_report(
     # non-UTC hosts) so the expense side reconciles with the income side.
     exp_start, exp_end = local_month_date_range(month)
     flow = _cash_flow(db, start, end, exp_start, exp_end, branch_id)
-    payroll_window = [
-        Expense.kind == "payroll",
-        Expense.expense_date >= exp_start,
-        Expense.expense_date < exp_end,
-    ]
-    if branch_id is not None:
-        payroll_window.append(Expense.branch_id == branch_id)
-    payroll_total = _q2(db.execute(
-        select(func.coalesce(func.sum(Expense.amount), 0)).where(*payroll_window)
-    ).scalar_one())
+    # payroll_total ISOLATES salary spend — that's behind the payroll.read wall.
+    # The cash report is reachable with only expenses.read (Reception runs the
+    # till), so a non-payroll actor gets the figure as null, not a back door.
+    can_payroll = actor.is_superuser or "payroll.read" in actor.effective_permission_codes()
+    payroll_total: Decimal | None = None
+    if can_payroll:
+        payroll_window = [
+            Expense.kind == "payroll",
+            Expense.expense_date >= exp_start,
+            Expense.expense_date < exp_end,
+        ]
+        if branch_id is not None:
+            payroll_window.append(Expense.branch_id == branch_id)
+        payroll_total = _q2(db.execute(
+            select(func.coalesce(func.sum(Expense.amount), 0)).where(*payroll_window)
+        ).scalar_one())
     return MonthlyReport(month=month, payroll_total=payroll_total, **flow)

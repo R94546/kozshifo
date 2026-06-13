@@ -33,7 +33,7 @@ _MonthlyReport _$MonthlyReportFromJson(Map<String, dynamic> json) =>
       refundTotal: json['refund_total'] as String,
       expenseTotal: json['expense_total'] as String,
       net: json['net'] as String,
-      payrollTotal: json['payroll_total'] as String,
+      payrollTotal: json['payroll_total'] as String?,
     );
 
 Map<String, dynamic> _$MonthlyReportToJson(_MonthlyReport instance) =>

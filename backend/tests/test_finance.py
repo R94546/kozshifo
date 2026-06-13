@@ -60,6 +60,26 @@ def _paid_visit(client, auth, *, doctor_id: str | None = None, method: str = "ca
     return visit, pay.json()["payment"]
 
 
+def test_monthly_payroll_total_walled_from_reception(client, auth):
+    import datetime
+
+    month = datetime.date.today().isoformat()[:7]
+    # Director (superuser) sees the isolated payroll figure...
+    dir_report = client.get(f"{_REPORTS}/monthly", headers=auth, params={"month": month})
+    assert dir_report.status_code == 200, dir_report.text
+    assert dir_report.json()["payroll_total"] is not None
+
+    # ...Reception runs the till (expenses.read) but has NO payroll.read, so the
+    # monthly cash report must NOT leak salary spend — payroll_total is null.
+    reception = _login(client, "reception@kozshifo.uz", "Reception!2026")
+    rec_report = client.get(f"{_REPORTS}/monthly", headers=reception, params={"month": month})
+    assert rec_report.status_code == 200, rec_report.text
+    body = rec_report.json()
+    assert body["payroll_total"] is None
+    # The rest of the cash report still works for Reception.
+    assert "income_total" in body and "expense_total" in body and "net" in body
+
+
 # ════════════════════════════════════════════════════════════════════════════
 # Branch isolation (payments + cash reports)
 # ════════════════════════════════════════════════════════════════════════════

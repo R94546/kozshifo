@@ -31,7 +31,9 @@ abstract class MonthlyReport with _$MonthlyReport {
     required String refundTotal,
     required String expenseTotal,
     required String net,
-    required String payrollTotal,
+    // Null for callers without payroll.read — the salary figure is walled off
+    // even though the rest of the cash report needs only expenses.read.
+    String? payrollTotal,
   }) = _MonthlyReport;
 
   factory MonthlyReport.fromJson(Map<String, dynamic> json) =>
