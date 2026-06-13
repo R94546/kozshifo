@@ -101,6 +101,13 @@ const kAppDestinations = <AppDestination>[
     permissions: ['inventory.read'],
   ),
   AppDestination(
+    Icons.face_outlined,
+    Icons.face,
+    'Face ID',
+    '/access-control',
+    permissions: ['access_control.read'],
+  ),
+  AppDestination(
     Icons.settings_outlined,
     Icons.settings,
     'Администрирование',
